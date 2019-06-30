@@ -1,7 +1,7 @@
 import numpy as np
 from datetime import datetime
-import DataExtract, DataTransform
-from NeuralNetwork import forward, gradW, gradb, cost, error_rate
+from Data import DataExtract, DataTransform
+from Data.Util import forward, gradW, gradb, cost, error_rate
 from sklearn.utils import shuffle
 
 X_train, X_test, Y_train, Y_test =  DataExtract.load_minist_csv()
