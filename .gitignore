@@ -1,0 +1,6 @@
+/.git
+/.idea
+/Data/FacialExpression/*.csv
+/Data/Minist/*.csv
+param*.txt
+Minist/test.py
