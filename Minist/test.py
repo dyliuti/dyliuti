@@ -33,3 +33,31 @@ soft = np.exp(logits) / sum(np.exp(logits))
 res = - sum(label * np.log(soft))
 
 print(7//3)
+
+# 自相关
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import correlate
+
+X = np.random.randn(1000)
+C = correlate(X, X)
+plt.plot(C)
+plt.show()
+
+# Y[0] 与 X[100] 相互联系， Y[1] 与 X[101] 相互联系
+# Cross-Correlation
+Y = np.empty(1000)
+Y[0:900] = X[100:]
+Y[900:] = X[:100]
+C2 = correlate(X, Y)
+plt.plot(C2)
+plt.show()
+
+from scipy.signal import convolve
+C3 = convolve(X, np.flip(Y, 0))
+plt.plot(C3)
+plt.show()
+
+d = {'aa': 0, 'bb': 1}
+test = ((v, k) for k, v in d.items())  # generator object
+print(dict(test))

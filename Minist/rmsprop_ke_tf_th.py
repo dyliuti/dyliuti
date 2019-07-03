@@ -1,7 +1,7 @@
 import numpy as np
 from datetime import datetime
 from Data import DataExtract, DataTransform
-from Data.Util import error_rate
+from Minist.Common.Util import error_rate
 from sklearn.utils import shuffle
 
 # keras test error rate 0.036071.

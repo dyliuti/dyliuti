@@ -4,7 +4,9 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+from nltk.corpus import brown
 
+# 返回标准化了的训练集与测试集
 def load_minist_csv(pca=True):
 	train_file_path = 'Data/Minist/train.csv'
 	if not os.path.exists(train_file_path):
@@ -73,5 +75,89 @@ def load_facial_expression_data(balance_ones=True):
 
 	return X, Y
 
+# 返回indexed_sentences: 用索引表示的句子的集合, 不包括额外添加的'START', 'END'
+# 返回word2index: 字符 词 映射到索引， 包括'START', 'END'
+def load_brown():
+	sentences = brown.sents()
+
+	index = 2
+	indexed_sentences = []
+	word2index = {'START': 0, 'END': 1}
+	for sentence in sentences:
+		indexed_sentence = []
+		for word in sentence:
+			if word not in word2index:
+				word2index[word] = index
+				index += 1
+
+			indexed_sentence.append(word2index[word])
+		indexed_sentences.append(indexed_sentence)
+
+	return indexed_sentences, word2index
+
+
+KEEP_WORDS = set(['king', 'man', 'queen', 'woman',
+				  'italy', 'rome', 'france', 'paris',
+				  'london', 'britain', 'england',])
+
+# 保留出现次数最多的前n_vocab个词
+def load_brown_with_limit_vocab(n_vocab=2000, keep_words=KEEP_WORDS):
+	sentences = brown.sents()
+
+	index = 2
+	indexed_sentences = []
+	word2index = {'START': 0, 'END': 1}
+	index2word = ['START', 'END']
+	# 保留'START'与'END'，词索引映射词数量
+	word_index2count = {
+		0: float('inf'),
+		1: float('inf')
+	}
+	for sentence in sentences:
+		indexed_sentence = []
+		for word in sentence:
+			word = word.lower()		# 必须的，不然word2index['italy']会报keyValueError异常
+			if word not in word2index:
+				index2word.append(word)
+				word2index[word] = index
+				index += 1
+
+			# 若词索引不在字典key中，value置0；否则，出现次数+1
+			word_index = word2index[word]
+			word_index2count[word_index] = word_index2count.get(word_index, 0) + 1
+			indexed_sentence.append(word2index[word])
+		indexed_sentences.append(indexed_sentence)
+
+	# 保留需保留的词
+	for word in keep_words:
+		word_index2count[word2index[word]] = float('inf')
+	# 取出现次数最多的n_vocab个词
+	sorted_word_index2count = sorted(word_index2count.items(), key=lambda k: k[1], reverse=True)
+	# sorted_word_idx2count = sorted(word_index2count.items(), key=operator.itemgetter(1), reverse=True)
+
+	word2index_limit = {}
+	new_index = 0
+	old_index2new_index = {}
+
+	# 生成新的word2index； 同时生成old_index2new_index，为句子索引转换做准备
+	for index, count in sorted_word_index2count[:n_vocab]:
+		word = index2word[index]
+		word2index_limit[word] = new_index
+		old_index2new_index[index] = new_index
+		new_index += 1
+	# 'UNKNOW'为最后一个词
+	word2index_limit['UNKNOW'] = new_index # n_vocab
+	unknow_index = new_index
+
+	# 将句子中的‘旧索引’更新为'新索引'
+	sentences_limit = []
+	for sentence in indexed_sentences:
+		if len(sentence) > 1:
+			new_sentence = [old_index2new_index[word_index]
+							if word_index in old_index2new_index else unknow_index
+							for word_index in sentence]
+			sentences_limit.append(new_sentence)
+
+	return  sentences_limit, word2index_limit
 
 

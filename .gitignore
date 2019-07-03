@@ -2,5 +2,6 @@
 /.idea
 /Data/FacialExpression/*.csv
 /Data/Minist/*.csv
+/Data/NLP/*
 param*.txt
 Minist/test.py

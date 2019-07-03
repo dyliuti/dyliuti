@@ -1,7 +1,7 @@
 import numpy as np
 from datetime import datetime
 from Data import DataExtract, DataTransform
-from Data.Util import forward, derivative_b1, derivative_b2, derivative_w1, derivative_w2, cost, error_rate
+from Minist.Common.Util import forward, derivative_b1, derivative_b2, derivative_w1, derivative_w2, cost, error_rate
 from sklearn.utils import shuffle
 
 
