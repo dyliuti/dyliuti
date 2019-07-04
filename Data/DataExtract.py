@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from nltk.corpus import brown
+import string
+from glob import glob
 
 # 返回标准化了的训练集与测试集
 def load_minist_csv(pca=True):
@@ -160,4 +162,47 @@ def load_brown_with_limit_vocab(n_vocab=2000, keep_words=KEEP_WORDS):
 
 	return  sentences_limit, word2index_limit
 
+def remove_punctuation(s):
+	return s.translate(str.maketrans('', '', string.punctuation))
 
+# 返回indexed_sentences: 用索引表示的句子的集合, 频数不在前n_vocab个的词转换为'UNKNOW'的索引
+# 返回word2index: 字符 词 映射到索引， 额外包括'UNKNOW'
+def load_wiki_with_limit_vocab(n_vocab=20000):
+	path = 'Data/NLP/WikiData/'
+	dirs = os.listdir(path)
+	files = [glob(path + dir_path + '/wiki*') for dir_path in dirs]
+	all_word_counts = {}
+	for f_list in files:  # str
+		for f in f_list:
+			for line in open(f, encoding='utf-8'):  # str
+				if line and line[0] not in '[*-|=\{\}<':
+					s = remove_punctuation(line).lower().split()
+					if len(s) > 1:
+						for word in s:
+							if word not in all_word_counts:
+								all_word_counts[word] = 0
+							all_word_counts[word] += 1
+	print("finished counting")
+
+	n_vocab = min(n_vocab, len(all_word_counts))
+
+	# 按词出现频数进行降序排序
+	all_word_counts = sorted(all_word_counts.items(), key=lambda k: k[1], reverse=True)
+	# 选取前n_vocab个词，并生成word2index
+	top_words  = [w for w, count in all_word_counts[: n_vocab - 1]] + ['UNKNOW']
+	word2index = {w: i for i, w in enumerate(top_words)}
+	unkonw_index = word2index['UNKNOW']
+
+	# 将句子中的单词转换为索引，频数不在前n_vocab个的词转换为'UNKNOW'的索引
+	indexed_sentences = []
+	for f_list in files:
+		for f in f_list:
+			for line in open(f, encoding='utf-8'):
+				if line and line[0] not in '[*-|=\{\}':
+					s = remove_punctuation(line).lower().split()
+					if len(s) > 1:
+						# if a word is not nearby another word, there won't be any context!
+						# and hence nothing to train!
+						sent = [word2index[w] if w in word2index else unkonw_index for w in s]  # word embedding
+						indexed_sentences.append(sent)
+	return indexed_sentences, word2index
