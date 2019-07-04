@@ -4,10 +4,11 @@ from NLP.Common.Util import get_bigram_prob
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 # 一个词预测下一个词
 
-indexed_sentences, word2index = load_brown_with_limit_vocab()
+indexed_sentences, word2index = load_brown_with_limit_vocab(2000)
 # 单词数
 V = len(word2index)
 start_index = word2index['START']
@@ -24,10 +25,11 @@ lr = 0.001
 losses = []
 bigram_losses = []
 epoches = 1
-i = 0
+t0 = datetime.now()
 for epoch in range(epoches):
 	random.shuffle(indexed_sentences)
 
+	i = 0
 	for sentence in indexed_sentences:
 		sentence = [word2index['START']] + sentence + [word2index['END']]
 		n = len(sentence)
@@ -57,6 +59,7 @@ for epoch in range(epoches):
 			print("epoch:", epoch, "sentence: %s/%s" % (i, len(sentence)), "loss:", loss)
 		i += 1
 
+print("Elapsed time training:", datetime.now() - t0)
 # W_bigram = np.log(bigram_probs)
 avg_bigram_loss = np.mean(bigram_losses)
 print("avg_bigram_loss:", avg_bigram_loss)
@@ -73,4 +76,73 @@ plt.subplot(1, 2, 2)
 plt.title("Bigram Probs")
 plt.imshow(W_bigram)
 plt.show()
+
+
+# 加速
+D = 100
+W1 = np.random.randn(V, D) / np.sqrt(D)
+W2 = np.random.randn(D, V) / np.sqrt(V)
+W_bigram = np.log(bigram_probs)
+
+lr = 0.001
+losses = []
+bigram_losses = []
+epoches = 1
+t0 = datetime.now()
+for epoch in range(epoches):
+	random.shuffle(indexed_sentences)
+
+	i = 0
+	for sentence in indexed_sentences:
+		sentence = [word2index['START']] + sentence + [word2index['END']]
+		n = len(sentence)
+		prev_sentence = sentence[:n-1]
+		next_sentence = sentence[1:]
+
+		# 前向传播
+		hidden = np.tanh(W1[prev_sentence])
+		predictions = softmax(hidden.dot(W2))
+
+		# 交叉熵, 句子的样本均值（对比时，去除句子不定长影响）
+		# predictions被下面引用了，会变，这里提前了
+		loss = -np.sum(np.log(predictions[np.arange(n - 1), next_sentence])) / (n - 1)
+		losses.append(loss)
+
+		# 更新权重
+		doutput = predictions
+		doutput[np.arange(n - 1), next_sentence] -= 1
+		W2 = W2  - lr * hidden.T.dot(doutput)
+		dhidden = doutput.dot(W2.T) * (1 - hidden * hidden)
+		np.subtract.at(W1, prev_sentence, lr * dhidden) # 区别于substract
+		# oh_inputs = np.zeros((n - 1, V))
+		# oh_inputs[np.arange(n - 1), prev_sentence] = 1
+		# W1 = W1 - lr * oh_inputs.T.dot(dhidden)
+
+		if epoch == 0:
+			bigram_predictions = softmax(W_bigram[prev_sentence])
+			bigram_loss = -np.sum(np.log(bigram_predictions[np.arange(n - 1), next_sentence])) / (n - 1)
+			bigram_losses.append(bigram_loss)
+
+		if i % 100 == 0:
+			print("epoch:", epoch, "sentence: %s/%s" % (i, len(sentence)), "loss:", loss)
+		i += 1
+
+print("Elapsed time training:", datetime.now() - t0)
+# W_bigram = np.log(bigram_probs)
+avg_bigram_loss = np.mean(bigram_losses)
+print("avg_bigram_loss:", avg_bigram_loss)
+plt.axhline(y=avg_bigram_loss, color='r', linestyle='-')
+plt.plot(smoothed_loss(losses))
+plt.plot(losses)
+plt.show()
+
+# softmax is the opposite of the log()
+plt.subplot(1, 2, 1)
+plt.title("Neural Network Model")
+plt.imshow(np.tanh(W1).dot(W2))
+plt.subplot(1, 2, 2)
+plt.title("Bigram Probs")
+plt.imshow(W_bigram)
+plt.show()
+
 
