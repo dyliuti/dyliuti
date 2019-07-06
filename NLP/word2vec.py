@@ -1,4 +1,4 @@
-from Data.DataExtract import load_wiki_with_limit_vocab
+from Data.DataExtract import load_wiki_with_limit_vocab, load_brown_with_limit_vocab
 import numpy as np
 from datetime import datetime
 from scipy.special import expit as sigmoid
@@ -56,17 +56,18 @@ def stochastic_gradient(input, output, label, learning_rate, W1, W2):
 	except IndexError:
 		print('input:', input, 'output:', output)
 	else:
-		return cost.sum()
+		return -cost.sum()
 
 def train_model():
 	indexed_sentences, word2index = load_wiki_with_limit_vocab(n_vocab=2000)
+	# indexed_sentences, word2index = load_brown_with_limit_vocab(n_vocab=2000)
 	vocab_size = len(word2index)
 
 	# 参数
 	window_size = 5
 	learning_rate = 0.025
 	final_learning_rate = 0.0001
-	epochs = 20
+	epochs = 1
 	D = 50	# word embedding size
 
 	# 线性递减学习率
@@ -105,7 +106,7 @@ def train_model():
 				# 中心词的上下文
 				context = get_context(word_pos, sentence, window_size)
 				# negitive word
-				negative_word = np.random.choice(vocab_size, p=p_word)	# 单个词
+				negative_word = np.random.choice(vocab_size, p=p_word)	# 替代中心词indexed_word的位置
 				# 输出
 				output = np.array(context)
 				# 固定上下文，改变中心词（与常规固定中心词，改变上下文不同，减少了选择次数，实现简单点）
@@ -122,6 +123,7 @@ def train_model():
 		learning_rate -= learning_rate_delta
 
 	plt.plot(costs)
+	plt.show()
 
 	return word2index, W1, W2
 
@@ -145,8 +147,9 @@ def analogy(pos1, neg1, pos2, neg2, word2index, index2word, W):
 	V, D = W.shape
 	print("testing: %s - %s = %s - %s" % (pos1, neg1, pos2, neg2))
 	for word in (pos1, neg1, pos2, neg2):
-		if word not in word2index:
+		if word not in word2index:			# 选择的前n个样本有关
 			print('%s 不在word2index中。' % word)
+			return
 
 	p1 = W[word2index[pos1]]
 	n1 = W[word2index[neg1]]
@@ -155,7 +158,7 @@ def analogy(pos1, neg1, pos2, neg2, word2index, index2word, W):
 
 	vec = p1 - n1 + n2
 
-	distances = pairwise_distances(vec.reshape(1, D), W, metric='cosine').reshspe(V)
+	distances = pairwise_distances(vec.reshape((1, D)), W, metric='cosine').reshape(V)
 	index = distances.argsort()[:10]
 
 	# 已用的词汇
@@ -170,7 +173,7 @@ def analogy(pos1, neg1, pos2, neg2, word2index, index2word, W):
 	for i in index:
 		print(index2word[i], distances[i])
 
-	print("dist to %s:" % pos2, cosine(p2, vec))
+	print("distance to %s:" % pos2, cosine(p2, vec))
 
 def test_model(word2index, W1, W2):
 	index2word = {i: w for w, i in word2index.items()}
@@ -186,7 +189,7 @@ def test_model(word2index, W1, W2):
 		analogy('man', 'woman', 'he', 'she', word2index, index2word, We)
 
 def main():
-	savedir = 'word2vec_model'
+	savedir = 'NLP/word2vec_model'
 	if not os.path.exists(savedir + '/word2index.json'):
 		word2index, W1, W2 = train_model()
 		test_model(word2index, W1, W2)

@@ -74,3 +74,7 @@ np.sum(np.array([1, 1]) * arr[:, [0, 2]], axis=1)
 a = np.array([1, 3, 4])
 a_T = a.T
 print(a==a_T)
+
+sentence_size = 12
+random_word_sequence = np.random.choice(sentence_size, size=sentence_size, replace=False)
+
