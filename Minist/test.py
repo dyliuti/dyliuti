@@ -61,3 +61,16 @@ plt.show()
 d = {'aa': 0, 'bb': 1}
 test = ((v, k) for k, v in d.items())  # generator object
 print(dict(test))
+
+import numpy as np
+arr = np.arange(9).reshape((3, 3))
+print(arr[0, 2])
+print(arr[[0, 2]])
+arr[[0,2],[0,2]] = 10
+print(arr)
+print(arr[:, [0, 2]]) # 输出两列
+np.sum(np.array([1, 1]) * arr[:, [0, 2]], axis=1)
+
+a = np.array([1, 3, 4])
+a_T = a.T
+print(a==a_T)

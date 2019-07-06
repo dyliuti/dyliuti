@@ -24,7 +24,7 @@ Y_test = test.label
 # X_test = word2vec.fit_transform(test.content)
 # Y_test = test.label
 
-#测试 LogisticRegression RandomForest xgboost
+# 测试 LogisticRegression RandomForest xgboost
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier

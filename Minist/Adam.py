@@ -63,13 +63,13 @@ for i in range(epochs):
 		gW2 = derivative_w2(Z, p_y, Y_batch) + reg * W2
 		gb2 = derivative_b2(p_y, Y_batch) + reg * b2
 
-		# 指数衰减累加一阶导
+		# 指数衰减累加一阶距导数
 		mW1 = decay_rate1 * mW1 + (1 - decay_rate1) * gW1
 		mb1 = decay_rate1 * mb1 + (1 - decay_rate1) * gb1
 		mW2 = decay_rate1 * mW2 + (1 - decay_rate1) * gW2
 		mb2 = decay_rate1 * mb2 + (1 - decay_rate1) * gb2
 
-		# 指数衰减累加二阶导
+		# 指数衰减累加二阶距导数
 		vW1 = decay_rate2 * vW1 + (1 - decay_rate2) * gW1 * gW1
 		vb1 = decay_rate2 * vb1 + (1 - decay_rate2) * gb1 * gb1
 		vW2 = decay_rate2 * vW2 + (1 - decay_rate2) * gW2 * gW2

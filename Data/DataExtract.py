@@ -201,8 +201,7 @@ def load_wiki_with_limit_vocab(n_vocab=20000):
 				if line and line[0] not in '[*-|=\{\}':
 					s = remove_punctuation(line).lower().split()
 					if len(s) > 1:
-						# if a word is not nearby another word, there won't be any context!
-						# and hence nothing to train!
+						# 如果无context，就不训练
 						sent = [word2index[w] if w in word2index else unkonw_index for w in s]  # word embedding
 						indexed_sentences.append(sent)
 	return indexed_sentences, word2index

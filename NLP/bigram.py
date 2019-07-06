@@ -9,7 +9,8 @@ indexed_sentences, word2index = load_brown_with_limit_vocab(n_vocab=10000)
 V = len(word2index)
 start_index = word2index['START']
 end_index = word2index['END']
-bigram_probs = get_bigram_prob(indexed_sentences, V, start_index, end_index)
+# 每个句子包含首尾'START'，'END'的贝叶斯估计的bigram
+bigram_probs = get_bigram_prob(indexed_sentences, V, start_index, end_index, smooth=1)
 
 
 # 获得字符串句子
