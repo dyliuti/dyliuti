@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
 
 from tensorflow.contrib.rnn import static_rnn as get_rnn_output
 from tensorflow.contrib.rnn import BasicRNNCell
@@ -15,7 +14,7 @@ def x2sequence(x, batch_size, T, D):
 	return x
 
 bit_len = 12
-hidden_unit_size = 4
+hidden_unit_size = 3
 batch_size = 20
 
 learning_rate = 0.1

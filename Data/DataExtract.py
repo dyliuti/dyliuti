@@ -205,3 +205,21 @@ def load_wiki_with_limit_vocab(n_vocab=20000):
 						sent = [word2index[w] if w in word2index else unkonw_index for w in s]  # word embedding
 						indexed_sentences.append(sent)
 	return indexed_sentences, word2index
+
+def load_robert_frost():
+	word2idx = {'START': 0, 'END': 1}
+	current_idx = 2
+	sentences = []
+	for line in open('Data/NLP/robert_frost.txt', 'r', encoding='utf-8'):
+		line = line.strip()
+		if line:
+			tokens = remove_punctuation(line.lower()).split()
+			sentence = []
+			for t in tokens:
+				if t not in word2idx:
+					word2idx[t] = current_idx
+					current_idx += 1
+				idx = word2idx[t]
+				sentence.append(idx)
+			sentences.append(sentence)
+	return sentences, word2idx
