@@ -5,7 +5,7 @@ from scipy.special import expit as sigmoid
 import matplotlib.pyplot as plt
 import os, json
 from sklearn.metrics.pairwise import pairwise_distances
-from scipy.spatial.distance import cosine
+
 
 # 获取词的分布，频率高的词越容易抽中
 def get_negative_sampling_distribution(sentences, vocab_size):
@@ -56,7 +56,7 @@ def stochastic_gradient(input, output, label, learning_rate, W1, W2):
 	except IndexError:
 		print('input:', input, 'output:', output)
 	else:
-		return -cost.sum()
+		return cost.sum()
 
 def train_model():
 	indexed_sentences, word2index = load_wiki_with_limit_vocab(n_vocab=2000)
@@ -67,7 +67,7 @@ def train_model():
 	window_size = 5
 	learning_rate = 0.025
 	final_learning_rate = 0.0001
-	epochs = 1
+	epochs = 2
 	D = 50	# word embedding size
 
 	# 线性递减学习率
@@ -143,37 +143,43 @@ def load_model(savedir):
 		W2 = npz['arr_1']
 		return word2idx, W1, W2
 
-def analogy(pos1, neg1, pos2, neg2, word2index, index2word, W):
-	V, D = W.shape
-	print("testing: %s - %s = %s - %s" % (pos1, neg1, pos2, neg2))
-	for word in (pos1, neg1, pos2, neg2):
-		if word not in word2index:			# 选择的前n个样本有关
+
+def analogy(word1, neg1, word2, neg2, word2index, index2word, word_embedding):
+	V, D = word_embedding.shape
+	print("testing: %s - %s = %s - %s" % (word1, neg1, word2, neg2))
+	for word in (word1, neg1, word2, neg2):
+		if word not in word2index:
 			print('%s 不在word2index中。' % word)
 			return
 
-	p1 = W[word2index[pos1]]
-	n1 = W[word2index[neg1]]
-	p2 = W[word2index[pos2]]
-	n2 = W[word2index[neg2]]
+	p1 = word_embedding[word2index[word1]]
+	n1 = word_embedding[word2index[neg1]]
+	p2 = word_embedding[word2index[word2]]
+	n2 = word_embedding[word2index[neg2]]
 
 	vec = p1 - n1 + n2
 
-	distances = pairwise_distances(vec.reshape((1, D)), W, metric='cosine').reshape(V)
-	index = distances.argsort()[:10]
+	for dist in ('euclidean', 'cosine'):
+		distances = pairwise_distances(vec.reshape(1, D), word_embedding, metric=dist).reshape(V)
+		index = distances.argsort()[:6]
 
-	# 已用的词汇
-	used_word = [word2index[word] for word in (pos1, neg1, neg2)]
-	best_index = -1
-	for i in index:
-		if i not in used_word:
-			best_index = i
-			break
-	print("got: %s - %s = %s - %s" % (pos1, neg1, index2word[best_index], neg2))
-	print("closest 10:")
-	for i in index:
-		print(index2word[i], distances[i])
+		# 已用的词汇
+		used_word = [word2index[word] for word in (word1, neg1, neg2)]
+		best_index = -1
+		for i in index:
+			if i not in used_word:
+				best_index = i
+				break
+		best_word = index2word[best_index]
+		print("got: %s - %s = %s - %s" % (word1, neg1, best_word, neg2))
+		print("closest 6:")
+		for i in index:
+			print(index2word[i], distances[i])
 
-	print("distance to %s:" % pos2, cosine(p2, vec))
+		distance1 = pairwise_distances(vec.reshape(1, D), p2.reshape(1, D), metric=dist)
+		distance2 = pairwise_distances(vec.reshape(1, D), word_embedding[best_index].reshape(1, D), metric=dist)
+		print("closest match by '%s'." % dist, "word: %s." % word2, "distance: ", distance1[0][0])
+		print("closest match by '%s'." % dist, "word: %s." % best_word, "distance: ", distance2[0][0])
 
 def test_model(word2index, W1, W2):
 	index2word = {i: w for w, i in word2index.items()}

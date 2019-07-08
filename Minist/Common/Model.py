@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-import DataTransform
-from NeuralNetwork import gradb, gradW, cost, error_rate, derivative_b1, derivative_b2, derivative_w1, derivative_w2
+from Data import DataTransform
+from Minist.Common.Util import gradb, gradW, cost, error_rate, derivative_b1, derivative_b2, derivative_w1, derivative_w2
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 import matplotlib.pyplot as plt

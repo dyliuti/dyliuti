@@ -3,13 +3,6 @@ import pandas as pd
 from gensim.models import KeyedVectors
 
 
-def init_weight(M1, M2):
-	return np.random.randn(M1, M2) * np.sqrt(2.0 / M1)
-
-def init_weight_and_bias(M1, M2):
-	return np.random.randn(M1, M2) / np.sqrt(M2), np.zeros(M2)
-
-
 class GloveVectorizer(object):
 	def __init__(self):
 		# load in pre-trained word vectors
@@ -85,3 +78,5 @@ class Word2VecVectorizer(object):
 	def fit_transform(self, sentences):
 		self.fit(sentences)
 		return self.transform(sentences)
+
+

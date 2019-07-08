@@ -1,11 +1,10 @@
 from Data.DataExtract import load_wiki_with_limit_vocab, load_brown_with_limit_vocab
+from NLP.Common.Util import analogy
 import numpy as np
 from datetime import datetime
 from scipy.special import expit as sigmoid
 import matplotlib.pyplot as plt
 import os, json
-from sklearn.metrics.pairwise import pairwise_distances
-from scipy.spatial.distance import cosine
 import tensorflow as tf
 
 # 获取词的分布，频率高的词越容易抽中
@@ -57,17 +56,17 @@ def stochastic_gradient(input, output, label, learning_rate, W1, W2):
 	except IndexError:
 		print('input:', input, 'output:', output)
 	else:
-		return cost.sum()
+		return -cost.sum()
 
 def train_model():
-	indexed_sentences, word2index = load_wiki_with_limit_vocab(n_vocab=20000)
+	indexed_sentences, word2index = load_wiki_with_limit_vocab(n_vocab=2000)
 	print("句子总数: ", len(indexed_sentences))
 	# indexed_sentences, word2index = load_brown_with_limit_vocab(n_vocab=2000)
 	vocab_size = len(word2index)
 
 	# 参数
 	window_size = 5
-	epochs = 2
+	epochs = 1
 	D = 100	# word embedding size
 
 	p_word = get_negative_sampling_distribution(indexed_sentences, vocab_size)
@@ -175,53 +174,22 @@ def load_model(savedir):
 		W2 = npz['arr_1']
 		return word2idx, W1, W2
 
-def analogy(pos1, neg1, pos2, neg2, word2index, index2word, W):
-	V, D = W.shape
-	print("testing: %s - %s = %s - %s" % (pos1, neg1, pos2, neg2))
-	for word in (pos1, neg1, pos2, neg2):
-		if word not in word2index:
-			print('%s 不在word2index中。' % word)
-			return
-
-	p1 = W[word2index[pos1]]
-	n1 = W[word2index[neg1]]
-	p2 = W[word2index[pos2]]
-	n2 = W[word2index[neg2]]
-
-	vec = p1 - n1 + n2
-
-	distances = pairwise_distances(vec.reshape(1, D), W, metric='cosine').reshape(V)
-	index = distances.argsort()[:10]
-
-	# 已用的词汇
-	used_word = [word2index[word] for word in (pos1, neg1, neg2)]
-	best_index = -1
-	for i in index:
-		if i not in used_word:
-			best_index = i
-			break
-	print("got: %s - %s = %s - %s" % (pos1, neg1, index2word[best_index], neg2))
-	print("closest 10:")
-	for i in index:
-		print(index2word[i], distances[i])
-
-	print("distance to %s:" % pos2, cosine(p2, vec))
 
 def test_model(word2index, W1, W2):
 	index2word = {i: w for w, i in word2index.items()}
 	# 也可以试 We = W2.T
-	for We in (W1, (W1 + W2.T) / 2):
+	for word_embedding in (W1, (W1 + W2.T) / 2):
 		print("**********")
 
-		analogy('king', 'man', 'queen', 'woman', word2index, index2word, We)
-		analogy('king', 'prince', 'queen', 'princess', word2index, index2word, We)
-		analogy('miami', 'florida', 'dallas', 'texas', word2index, index2word, We)
-		analogy('einstein', 'scientist', 'picasso', 'painter', word2index, index2word, We)
-		analogy('japan', 'sushi', 'germany', 'bratwurst', word2index, index2word, We)
-		analogy('man', 'woman', 'he', 'she', word2index, index2word, We)
+		analogy('king', 'man', 'queen', 'woman', word2index, index2word, word_embedding)
+		analogy('king', 'prince', 'queen', 'princess', word2index, index2word, word_embedding)
+		analogy('miami', 'florida', 'dallas', 'texas', word2index, index2word, word_embedding)
+		analogy('einstein', 'scientist', 'picasso', 'painter', word2index, index2word, word_embedding)
+		analogy('japan', 'sushi', 'germany', 'bratwurst', word2index, index2word, word_embedding)
+		analogy('man', 'woman', 'he', 'she', word2index, index2word, word_embedding)
 
 def main():
-	savedir = 'word2vec_tf_model'
+	savedir = 'NLP/word2vec_tf_model'
 	if not os.path.exists(savedir):
 		word2index, W1, W2 = train_model()
 		test_model(word2index, W1, W2)
