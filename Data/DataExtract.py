@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from nltk.corpus import brown
+from nltk import pos_tag, word_tokenize
 import string
 from glob import glob
 
@@ -207,8 +208,8 @@ def load_wiki_with_limit_vocab(n_vocab=20000):
 	return indexed_sentences, word2index
 
 def load_robert_frost():
-	word2idx = {'START': 0, 'END': 1}
-	current_idx = 2
+	word2index = {'START': 0, 'END': 1}
+	current_index = 2
 	sentences = []
 	for line in open('Data/NLP/robert_frost.txt', 'r', encoding='utf-8'):
 		line = line.strip()
@@ -216,10 +217,55 @@ def load_robert_frost():
 			tokens = remove_punctuation(line.lower()).split()
 			sentence = []
 			for t in tokens:
-				if t not in word2idx:
-					word2idx[t] = current_idx
-					current_idx += 1
-				idx = word2idx[t]
+				if t not in word2index:
+					word2index[t] = current_index
+					current_index += 1
+				idx = word2index[t]
 				sentence.append(idx)
 			sentences.append(sentence)
-	return sentences, word2idx
+	return sentences, word2index
+
+
+# 分词后对词性进行标注
+def get_tags(s):
+	tuples = pos_tag(word_tokenize(s))
+	return [y for x, y in tuples]
+
+def load_poetry_classifier_data(samples_per_class, load_cached=False, save_cached=True):
+	datafile = 'Data/NLP/poetry_classifier_data.npz'
+	if load_cached and os.path.exists(datafile):
+		npz = np.load(datafile)
+		X = npz['arr_0']
+		Y = npz['arr_1']
+		V = int(npz['arr_2'])
+		return X, Y, V
+
+	tag2index = {}
+	current_index = 0
+	X = []
+	Y = []
+	for fn, label in zip(('Data/NLP/edgar_allan_poe.txt', 'Data/NLP/robert_frost.txt'), (0, 1)):
+		count = 0
+		for line in open(fn, encoding='utf-8'):
+			line = line.rstrip()
+			if line:
+				print(line)
+				# tokens = remove_punctuation(line.lower()).split()
+				tags = get_tags(line)
+				if len(tags) > 1:
+					# scan doesn't work nice here, technically could fix...
+					for tag in tags:
+						if tag not in tag2index:
+							tag2index[tag] = current_index
+							current_index += 1
+					sequence = np.array([tag2index[t] for t in tags])
+					X.append(sequence)  # 一个sequence代表一行
+					Y.append(label)
+					count += 1          # 行数 从1开始
+					print(count, label)
+					# quit early because the tokenizer is very slow
+					if count >= samples_per_class:
+						break
+	if save_cached:
+		np.savez(datafile, X, Y, current_index)
+	return X, Y, current_index
