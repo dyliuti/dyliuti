@@ -69,7 +69,7 @@ cost = tf.reduce_mean(
 		num_classes=V		# The number of possible classes.
 	)
 )
-train_optimize = tf.train.AdamOptimizer(learning_rate=0.01)
+train_optimize = tf.train.AdamOptimizer(learning_rate=0.0001)
 # train_optimize = tf.train.RMSPropOptimizer(learning_rate=0.001)
 train_step = train_optimize.minimize(cost)
 

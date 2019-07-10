@@ -269,3 +269,78 @@ def load_poetry_classifier_data(samples_per_class, load_cached=False, save_cache
 	if save_cached:
 		np.savez(datafile, X, Y, current_index)
 	return X, Y, current_index
+
+# train都是词的索引，test都是词对应的tag的索引
+def load_chunking(split_sequence=True):
+	train_file = 'Data/NLP/chunking/train.txt'
+	test_file = 'Data/NLP/chunking/test.txt'
+	word2index, tag2index = {}, {}
+	word_index, tag_index = 0, 0
+	X_train, Y_train, current_X, current_Y = [], [], [], []
+	for line in open(train_file, encoding='utf-8'):
+		line = line.rstrip()	# 删除右侧空字符
+		if line:
+			r = line.split()
+			word, tag, _ = r
+			if word not in word2index:
+				word2index[word] = word_index
+				word_index += 1
+			current_X.append(word2index[word])
+
+			if tag not in tag2index:
+				tag2index[tag] = tag_index
+				tag_index += 1
+			current_Y.append(tag2index[tag])
+		elif split_sequence:
+			X_train.append(current_X)
+			Y_train.append(current_Y)
+			current_X, current_Y = [], []
+	if not split_sequence:
+		X_train = current_X
+		Y_train = current_Y
+
+	# 加载测试集
+	X_test, Y_test, current_X, current_Y = [], [], [], []
+	for line in open(test_file, encoding='utf-8'):
+		line = line.rstrip()  # 删除右侧空字符
+		if line:
+			r = line.split()
+			word, tag, _ = r
+			if word in word2index:
+				current_X.append(word2index[word])
+			else:
+				current_X.append(word_index)	# 将最后词索引当做'UNKNOW'索引
+			current_Y.append(tag2index[tag])
+		elif split_sequence:
+			X_test.append(current_X)
+			Y_test.append(current_Y)
+			current_X, current_Y = [], []
+	if not split_sequence:
+		X_test = current_X
+		Y_test = current_Y
+
+	return X_train, Y_train, X_test, Y_test, word2index
+
+
+# 返回word，tag 非索引
+def load_ner(split_sequence=True):
+	file = 'Data/NLP/ner.txt'
+	words, tags, word_list, tag_list = [], [], [], []
+	for line in open(file, encoding='utf-8'):
+		line = line.rstrip()  # 删除右侧空字符
+		if line:
+			r = line.split()
+			word, tag = r
+			word = word.lower()
+			word_list.append(word)
+			tag_list.append(tag)
+		elif split_sequence:
+			words.append(word_list)
+			tags.append(tag_list)
+			word_list = []
+			tag_list = []
+	if not split_sequence:
+		words = word_list
+		tags = tag_list
+
+	return words, tags
