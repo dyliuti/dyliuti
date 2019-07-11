@@ -3,7 +3,6 @@ from tensorflow.contrib.rnn import static_rnn as get_rnn_output
 from tensorflow.contrib.rnn import BasicRNNCell, GRUCell
 import tensorflow as tf
 from sklearn.utils import shuffle
-from datetime import datetime
 import numpy as np
 from sklearn.metrics import f1_score
 import matplotlib.pyplot as plt
@@ -15,8 +14,11 @@ def flatten(l):
 
 # get the data
 X_train, Y_train, X_test, Y_test, word2idx = load_chunking(split_sequence=True)
+# tags类别数
+class_set = set(flatten(Y_train)) | set(flatten(Y_test))
+class_num = len(class_set) + 1
 V = len(word2idx) + 2  # vocab size (+1 for unknown, +1 b/c start from 1)
-K = len(set(flatten(Y_train)) | set(flatten(Y_test))) + 1  # num classes   验证集与训练集共有的tags总数: 45
+
 
 # training config
 epochs = 20
@@ -25,122 +27,98 @@ mu = 0.99
 batch_size = 32
 hidden_layer_size = 30  # hideene_layer_size
 embedding_dim = 20
-test = [len(x) for x in (X_train + X_test)]  # 8936 + 2012 个 序列长度数
-sequence_length = max(len(x) for x in X_train + X_test)  # 最长的序列长度
+# 在训练集与测试集中最长的序列长度
+max_sequence_length = max(len(x) for x in X_train + X_test)
 
-# pad sequences 小于maxlen的前面填0
-X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=sequence_length)  # 8936， 78
-Y_train = tf.keras.preprocessing.sequence.pad_sequences(Y_train, maxlen=sequence_length)
-X_test = tf.keras.preprocessing.sequence.pad_sequences(X_test, maxlen=sequence_length)  # 2012
-Y_test = tf.keras.preprocessing.sequence.pad_sequences(Y_test, maxlen=sequence_length)
-print("X_train.shape:", X_train.shape)
-print("Y_train.shape:", Y_train.shape)
+# 小于max_sequence_length的序列前面补0
+X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=max_sequence_length)
+Y_train = tf.keras.preprocessing.sequence.pad_sequences(Y_train, maxlen=max_sequence_length)
+X_test = tf.keras.preprocessing.sequence.pad_sequences(X_test, maxlen=max_sequence_length)
+Y_test = tf.keras.preprocessing.sequence.pad_sequences(Y_test, maxlen=max_sequence_length)
 
-# inputs
-inputs = tf.placeholder(tf.int32, shape=(None, sequence_length))  # (?，78) 固定了最长序列78， 不定长->定长
-targets = tf.placeholder(tf.int32, shape=(None, sequence_length))
-num_samples = tf.shape(inputs)[0]  # useful for later              # 样本数：8936
+inputs = tf.placeholder(tf.int32, shape=(None, max_sequence_length))
+targets = tf.placeholder(tf.int32, shape=(None, max_sequence_length))
+samples_num = tf.shape(inputs)[0] # 样本数
 
-# make them tensorflow variables
-tfWe = tf.Variable(tf.random_normal(shape=(V, embedding_dim)))		# V 10 	# embedding
-tfWo = tf.Variable(tf.random_normal(shape=(hidden_layer_size, K)))	# 10, 45
-tfbo = tf.Variable(tf.zeros(K))										# 45	# target：tags
+# VxD
+tfWe = tf.Variable(tf.random_normal(shape=(V, embedding_dim)))
+tfW0 = tf.Variable(tf.random_normal(shape=(hidden_layer_size, class_num)))
+tfb0 = tf.Variable(tf.zeros(class_num))
 
-# make the rnn unit
 rnn_unit = GRUCell(num_units=hidden_layer_size, activation=tf.nn.relu)
+# tfWe: VxD  inputs: NxT  -> x: NxTxD
+x = tf.nn.embedding_lookup(tfWe, inputs)
+# TxNxD
+x = tf.unstack(x, num=max_sequence_length, axis=1)
+# x：TxNxD -> outputs: TxNxM
+outputs, state = get_rnn_output(rnn_unit, x, dtype=tf.float32)
+# outputs: NxTxM
+outputs = tf.transpose(outputs, perm=(1, 0, 2))
+# N*TxM
+outputs = tf.reshape(outputs, shape=(samples_num * max_sequence_length, hidden_layer_size))
 
-# 一个句子（序列）固定长度78，  M肯定是词向量权重的特征维数 N为输入的样本量: ?
-# tfWe: 19124, 20  inputs: ? 78  -> x: ? 78 20 结果会比inputs多出一维(inputs是一个数，输出是一维)
-x = tf.nn.embedding_lookup(tfWe, inputs)  # 从所有word embedding的特征空间中  取出输入inputs中那么多个
+# 输出
+logits = tf.matmul(outputs, tfW0) + tfb0
+# N*Tx1
+predictions = tf.argmax(logits, axis=1)
+# NxT
+predictions = tf.reshape(predictions, shape=(samples_num, max_sequence_length))
+# NxT -> N*T
+labels_flat = tf.reshape(targets, [-1])
 
-# T ? 20   T个unstack
-x = tf.unstack(x, num=sequence_length, axis=1)  # T NxM   T ?x10
-
-# rnn output:  T ? 30
-outputs, states = get_rnn_output(rnn_unit, x, dtype=tf.float32)  # x: ?x10  ?x10, 10x10 -> ? 10    T ? 10
-
-# outputs are now of size (T, N, M)
-# so make it (N, T, M)
-outputs = tf.transpose(outputs, (1, 0, 2))
-outputs = tf.reshape(outputs, (sequence_length * num_samples, hidden_layer_size))  # NT x M         ?Tx10
-
-# final dense layer
-logits = tf.matmul(outputs, tfWo) + tfbo  # NT x K       ?Tx10 10xK -> ?TxK  ?T其实就是有这么多个单词
-predictions = tf.argmax(logits, axis=1)  # 一维的了 ?T 个索引
-predict_op = tf.reshape(predictions, (num_samples, sequence_length))  # ?xT
-labels_flat = tf.reshape(targets, [-1])  # target ?xT-> ?T 展开为一维   对每个单词都进行熵计算
-
-cost_optimize = tf.reduce_mean(
+cost = tf.reduce_mean(
 	tf.nn.sparse_softmax_cross_entropy_with_logits(
-		logits=logits,  # ?T个索引
-		labels=labels_flat  # ?T个标签
+		labels=labels_flat,
+		logits=logits
 	)
 )
-train_optimize = tf.train.AdamOptimizer(learning_rate).minimize(cost_optimize)
-train_step = train_optimize.minimize(cost_optimize)
 
-# init stuff
-sess = tf.InteractiveSession()
+train_optimize = tf.train.AdamOptimizer(learning_rate=learning_rate)
+train_step = train_optimize.minimize(cost)
+
+
+# 开始训练
+session = tf.InteractiveSession()
 init = tf.global_variables_initializer()
-sess.run(init)
+session.run(init)
 
-# training loop
-costs = []
+losses = []
 n_batches = len(Y_train) // batch_size
-for i in range(epochs):
-	n_total = 0
-	n_correct = 0
-
-	t0 = datetime.now()
+for epoch in range(epochs):
+	n_total, n_correct, loss = 0, 0, 0
 	X_train, Y_train = shuffle(X_train, Y_train)
-	cost = 0
 
-	for j in range(n_batches):
-		x = X_train[j * batch_size:(j + 1) * batch_size]
-		y = Y_train[j * batch_size:(j + 1) * batch_size]
+	for i in range(n_batches):
+		X = X_train[i * batch_size: (i + 1) * batch_size]
+		Y = Y_train[i * batch_size: (i + 1) * batch_size]
 
-		# get the cost, predictions, and perform a gradient descent step
-		c, p, _ = sess.run(
-			(cost_optimize, predict_op, train_step),
-			feed_dict={inputs: x, targets: y})
+		c, p, _ = session.run(fetches=[cost, predictions, train_step],
+							  feed_dict={inputs: X, targets: Y})
 		cost += c
-
-		# calculate the accuracy
-		for yi, pi in zip(y, p):
-			# we don't care about the padded entries so ignore them
+		# 计算准确率
+		for yi, pi in zip(Y, p):
+			# 忽略补充0的部分
 			yii = yi[yi > 0]
 			pii = pi[yi > 0]
 			n_correct += np.sum(yii == pii)
 			n_total += len(yii)
-
-		# print stuff out periodically
-		if j % 10 == 0:
-			print(
-				"j/N: %d/%d correct rate so far: %f, cost so far: %f\r" %
-				(j, n_batches, float(n_correct) / n_total, cost)
-			)
-
-	# 训练集训练完了
-	# get test acc. too
-	p = sess.run(predict_op, feed_dict={inputs: X_test, targets: Y_test})
-	n_test_correct = 0
-	n_test_total = 0
+		if i % 10 == 0:
+			print("epoch: ", epoch, ",n: ", i, ",cost: ", cost, "correct rate: ", float(n_correct) / n_total)
+	losses.append(cost)
+	# 测试集
+	p = session.run(predictions, fetches=X_test)
+	n_test_correct, n_test_total = 0, 0
 	for yi, pi in zip(Y_test, p):
+		# 忽略补充0的部分
 		yii = yi[yi > 0]
 		pii = pi[yi > 0]
 		n_test_correct += np.sum(yii == pii)
 		n_test_total += len(yii)
 	test_acc = float(n_test_correct) / n_test_total
+	print("epoch: ", epoch, ",cost: ", cost, ",train acc: %.4f, test acc: %.4f" %(float(n_correct) / n_total, test_acc))
 
-	print(
-		"i:", i, "cost:", "%.4f" % cost,
-		"train acc:", "%.4f" % (float(n_correct) / n_total),
-		"test acc:", "%.4f" % test_acc,
-		"time for epoch:", (datetime.now() - t0)
-	)
-	costs.append(cost)
-
-plt.plot(costs)
+plt.plot(losses)
 plt.show()
+
 
 
