@@ -94,7 +94,7 @@ for epoch in range(epochs):
 
 		c, p, _ = session.run(fetches=[cost, predictions, train_step],
 							  feed_dict={inputs: X, targets: Y})
-		cost += c
+		loss += c
 		# 计算准确率
 		for yi, pi in zip(Y, p):
 			# 忽略补充0的部分
@@ -103,10 +103,10 @@ for epoch in range(epochs):
 			n_correct += np.sum(yii == pii)
 			n_total += len(yii)
 		if i % 10 == 0:
-			print("epoch: ", epoch, ",n: ", i, ",cost: ", cost, "correct rate: ", float(n_correct) / n_total)
-	losses.append(cost)
+			print("epoch: ", epoch, ",n: ", i, ",cost: %.4f" % loss, ",correct rate: %.4f" % (float(n_correct) / n_total))
+	losses.append(loss)
 	# 测试集
-	p = session.run(predictions, fetches=X_test)
+	p = session.run(fetches=predictions, feed_dict={inputs: X_test, targets: Y_test})
 	n_test_correct, n_test_total = 0, 0
 	for yi, pi in zip(Y_test, p):
 		# 忽略补充0的部分
@@ -115,7 +115,7 @@ for epoch in range(epochs):
 		n_test_correct += np.sum(yii == pii)
 		n_test_total += len(yii)
 	test_acc = float(n_test_correct) / n_test_total
-	print("epoch: ", epoch, ",cost: ", cost, ",train acc: %.4f, test acc: %.4f" %(float(n_correct) / n_total, test_acc))
+	print("epoch: ", epoch, ",cost: %.4f, train acc: %.4f, test acc: %.4f" %(loss, float(n_correct) / n_total, test_acc))
 
 plt.plot(losses)
 plt.show()

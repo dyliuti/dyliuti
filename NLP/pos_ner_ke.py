@@ -32,19 +32,20 @@ tag2index = tokenizer_tag.word_index
 tag_size = min(MAX_TAGS, len(tag2index) + 1)
 
 # 找最长的序列， 对齐序列
-sequence_length = max(len(x) for x in X_train + X_test)
-X_train = pad_sequences(X_train, maxlen=sequence_length)
-Y_train = pad_sequences(Y_train, maxlen=sequence_length)
-X_test = pad_sequences(X_test, maxlen=sequence_length)
-Y_test = pad_sequences(Y_test, maxlen=sequence_length)
+max_sequence_length = max(len(x) for x in X_train + X_test)
+# NxT
+X_train = pad_sequences(X_train, maxlen=max_sequence_length)
+Y_train = pad_sequences(Y_train, maxlen=max_sequence_length)
+X_test = pad_sequences(X_test, maxlen=max_sequence_length)
+Y_test = pad_sequences(Y_test, maxlen=max_sequence_length)
 
-# 转换为one-hot 形式
-Y_train_onehot = np.zeros(shape=(len(Y_train), sequence_length, tag_size), dtype='float32')
+# 转换为one-hot 形式 NxTxM
+Y_train_onehot = np.zeros(shape=(len(Y_train), max_sequence_length, tag_size), dtype='float32')
 for n, tags in enumerate(Y_train):
 	for t, tag in enumerate(tags):
 		Y_train_onehot[n, t, tag] = 1
 
-Y_test_onehot = np.zeros(shape=(len(Y_test), sequence_length, tag_size), dtype='float32')
+Y_test_onehot = np.zeros(shape=(len(Y_test), max_sequence_length, tag_size), dtype='float32')
 for n, tags in enumerate(Y_test):
 	for t, tag in enumerate(tags):
 		Y_test_onehot[n, t, tag] = 1
@@ -55,10 +56,13 @@ batch_size = 32
 hidden_layer_size = 10
 embedding_dim = 10
 
-# build the model
-input_ = Input(shape=(sequence_length,))
+# 建立模型  Input只说明输入列维度
+# NxT
+input_ = Input(shape=(max_sequence_length,))
+# NxTxD
 x = Embedding(vocab_size, embedding_dim)(input_)
 x = GRU(hidden_layer_size, return_sequences=True)(x)
+# NxTxM
 output = Dense(tag_size, activation='softmax')(x)
 
 
@@ -71,6 +75,7 @@ model.compile(
 
 
 print('Training model...')
+# keras 的好处就是不用像tensorflow一样，输入前后都要进行维度转换
 r = model.fit(
 	X_train,
 	Y_train_onehot,

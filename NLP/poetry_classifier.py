@@ -14,7 +14,7 @@ N = len(X)	# 除去验证集的
 
 # RNN
 hidden_unit_size = 30
-# 无word embedding Wx从D, . -> V, .
+# 无word embedding Wx从D, M -> V, M
 Wx = tf.Variable(tf.random_normal(shape=(V, hidden_unit_size)))
 Wh = tf.Variable(tf.random_normal(shape=(hidden_unit_size, hidden_unit_size)))
 bh = tf.Variable(tf.zeros(hidden_unit_size))

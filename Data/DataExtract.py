@@ -344,3 +344,83 @@ def load_ner(split_sequence=True):
 		tags = tag_list
 
 	return words, tags
+
+
+class Tree:
+	def __init__(self, word_index, label):
+		self.left = None
+		self.right = None
+		self.word_index = word_index
+		self.label = label
+
+
+current_idx = 0
+def str2tree(s, word2index):
+	# take a string that starts with ( and MAYBE ends with )
+	# return the tree that it represents
+	# EXAMPLE: "(3 (2 It) (4 (4 (2 's) (4 (3 (2 a) (4 (3 lovely) (2 film))) (3 (2 with) (4 (3 (3 lovely) (2 performances)) (2 (2 by) (2 (2 (2 Buy) (2 and)) (2 Accorsi))))))) (2 .)))"
+	# NOTE: not every node has 2 children (possibly not correct ??)
+	# NOTE: not every node has a word
+	# NOTE: every node has a label
+	# NOTE: labels are 0,1,2,3,4
+	# NOTE: only leaf nodes have words
+	# s[0] = (, s[1] = label, s[2] = space, s[3] = character or (
+
+	global current_idx
+
+	label = int(s[1])
+	if s[3] == '(':
+		# 前序遍历
+		t = Tree(None, label)
+		child_s = s[3:]
+		t.left = str2tree(child_s, word2index)
+
+		i = 0
+		depth = 0
+		for c in s:
+			i += 1
+			if c == '(':
+				depth += 1
+			elif c == ')':
+				depth -= 1
+				if depth == 1:
+					break
+		# print "index of right child", i
+
+		t.right = str2tree(s[i+1:], word2index)
+		return t
+	else:
+		# this has a word, so it's a leaf
+		r = s.split(')', 1)[0]
+		word = r[3:].lower()
+		# print "word found:", word
+
+		if word not in word2index:
+			word2index[word] = current_idx
+			current_idx += 1
+
+		t = Tree(word2index[word], label)
+		return t
+
+
+# word2index: word到index的映射
+# train: 以树表示的句子
+def load_parse_tree():
+	word2index = {}
+	train, test = [], []
+
+	# train set first
+	for line in open('Data/NLP/trees/train.txt'):
+		line = line.rstrip()
+		if line:
+			t = str2tree(line, word2index)
+			train.append(t)
+			# break
+
+	# test set
+	for line in open('Data/NLP/trees/test.txt'):
+		line = line.rstrip()
+		if line:
+			t = str2tree(line, word2index)
+			test.append(t)
+	return train, test, word2index
