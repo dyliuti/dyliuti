@@ -1,2 +1,0 @@
-model_checkpoint_path: "recursive_neural_network_tf.ckpt"
-all_model_checkpoint_paths: "recursive_neural_network_tf.ckpt"

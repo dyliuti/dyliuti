@@ -31,6 +31,8 @@ def load_minist_csv(pca=True):
 		pca = PCA()
 		X_train = pca.fit_transform(X_train)
 		X_test = pca.transform(X_test)
+		# test1 = pca.explained_variance_
+		# test2 = pca.explained_variance_ratio_
 		plot_cumulative_variance(pca)
 	# 各自Normalize服从正态分布   梯度图变圆有利于梯度下降
 	X_train = (X_train - np.mean(X_train)) / np.std(X_train)
@@ -46,7 +48,7 @@ def plot_cumulative_variance(pca):
 		else:
 			P.append(p + P[-1])
 	plt.plot(P)
-	plt.show
+	plt.show()
 	return P
 
 def load_facial_expression_data(balance_ones=True):
