@@ -227,6 +227,18 @@ def load_robert_frost():
 			sentences.append(sentence)
 	return sentences, word2index
 
+def load_robert_frost_soseos():
+	input_sentences = []
+	output_sentences = []
+	for line in open('Data/NLP/robert_frost.txt', 'r', encoding='utf-8'):
+		line = line.strip()
+		if line:
+			# 前后空格别忘了
+			input_sentence = '<sos> ' + line
+			output_sentence = line + ' <eos>'
+			input_sentences.append(input_sentence)
+			output_sentences.append(output_sentence)
+	return input_sentences, output_sentences
 
 # 分词后对词性进行标注
 def get_tags(s):
@@ -426,3 +438,14 @@ def load_parse_tree():
 			t = str2tree(line, word2index)
 			test.append(t)
 	return train, test, word2index
+
+
+def load_glove6B(dimension):
+	word2vec = {}
+	with open('Data/NLP/glove.6B/glove.6B.%sd.txt' % dimension, encoding='utf-8') as f:
+		for line in f:
+			values = line.split()
+			word = values[0]
+			vec = np.asarray(values[1:], dtype='float32')
+			word2vec[word] = vec
+	return word2vec
