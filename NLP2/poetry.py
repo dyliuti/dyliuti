@@ -54,18 +54,19 @@ for word, word_index in word2index.items():
 			# 没找到词的词向量是原点，即都为0
 			embedding[word_index] = word_vector
 
-# 对目标也进行序列
+# 对目标也进行序列化
 ont_hot_output = np.zeros(shape=(len(input_sentences), max_sequence_length, words_num))
-for i, output_sequence in enumerate(output_sequences):
+for sequence_num, output_sequence in enumerate(output_sequences):
 	for t, word_index in enumerate(output_sequence):
 		if word_index > 0:
-			ont_hot_output[i, t, word_index] = 1
+			ont_hot_output[sequence_num, t, word_index] = 1
 
 # 将调整过的glove中的词向量初始化乘Embedding layer
-embedding_layer = Embedding(input_dim=words_num,
-							output_dim=EMBEDDING_DIM,
-							weights=[embedding],
-							# trainable=False
+embedding_layer = Embedding(
+	input_dim=words_num,
+	output_dim=EMBEDDING_DIM,
+	weights=[embedding],
+	# trainable=False
 )
 
 
@@ -123,6 +124,7 @@ x, h, c = lstm(x, initial_state=[initial_h, initial_c])
 # 1, 1, word_num
 output2 = dense(x)
 
+# 这里的initial_h, initial_c不是上一个模型的output与memory cell
 sampling_model = Model([input2, initial_h, initial_c], [output2, h, c])
 
 index2word = {v: k for k, v in word2index.items()}

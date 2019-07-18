@@ -449,3 +449,28 @@ def load_glove6B(dimension):
 			vec = np.asarray(values[1:], dtype='float32')
 			word2vec[word] = vec
 	return word2vec
+
+def load_translation(file_name='spa.txt', sample_num):
+	file = 'Data/NLP/translation/' + file_name
+	input_texts = []
+	translation_inputs = []
+	translation_outputs = []
+	num = 0
+	for line in open(file, encoding='utf-8'):
+		num += 1
+		if num > sample_num:
+			break
+
+		if '\t' not in line:
+			continue
+
+		# 分离输入句子和输出的翻译句子
+		input_text, translation = line.rstrip().split('\t')
+		translation_input = '<sos>' + translation
+		translation_output = translation + '<eos>'
+
+		input_texts.append(input_text)
+		translation_inputs.append(translation_input)
+		translation_outputs.append(translation_output)
+
+	return input_texts, translation_inputs, translation_outputs
