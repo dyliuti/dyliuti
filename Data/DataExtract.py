@@ -450,7 +450,7 @@ def load_glove6B(dimension):
 			word2vec[word] = vec
 	return word2vec
 
-def load_translation(file_name='spa.txt', sample_num):
+def load_translation(file_name='spa.txt', sample_num=float('inf')):
 	file = 'Data/NLP/translation/' + file_name
 	input_texts = []
 	translation_inputs = []
@@ -466,8 +466,8 @@ def load_translation(file_name='spa.txt', sample_num):
 
 		# 分离输入句子和输出的翻译句子
 		input_text, translation = line.rstrip().split('\t')
-		translation_input = '<sos>' + translation
-		translation_output = translation + '<eos>'
+		translation_input = '<sos> ' + translation
+		translation_output = translation + ' <eos>'
 
 		input_texts.append(input_text)
 		translation_inputs.append(translation_input)
