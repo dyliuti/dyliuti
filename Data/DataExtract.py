@@ -450,7 +450,7 @@ def load_glove6B(dimension):
 			word2vec[word] = vec
 	return word2vec
 
-def load_translation(file_name='spa.txt', sample_num=float('inf')):
+def load_translation(file_name='jpn.txt', sample_num=float('inf')):
 	file = 'Data/NLP/translation/' + file_name
 	input_texts = []
 	translation_inputs = []

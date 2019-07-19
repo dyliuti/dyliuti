@@ -13,7 +13,7 @@ if len(K.tensorflow_backend._get_available_gpus()) > 0:
 	from keras.layers import CuDNNGRU as GRU
 
 BATCH_SIZE = 64  # Batch size for training.
-EPOCHS = 10
+EPOCHS = 100
 LATENT_DIM = 256  # 隐藏层维度
 NUM_SAMPLES = 10000  # 训练样本句子数  总共44917行
 MAX_SEQUENCE_LENGTH = 100
@@ -21,7 +21,8 @@ MAX_NUM_WORDS = 20000
 EMBEDDING_DIM = 100
 
 word2vec = load_glove6B(EMBEDDING_DIM)
-# 翻译的输入句子， 翻译后输出句子前后分别加标志成为inputs与outputs
+# 翻译的输入句子， 翻译后的输出句子前后分别加标志成为inputs与outputs
+# translation_inputs 与 translation_outputs 分别作为 Teacher Forcing 的输入与输出
 input_texts, translation_inputs, translation_outputs = load_translation(sample_num=NUM_SAMPLES)
 
 # 将输入tokennize
@@ -119,13 +120,14 @@ decoder_outputs, _, _ = decoder_lstm(
 #   decoder_inputs_x,
 #   initial_state=encoder_states
 # )
-# 预测的翻译词的概率，   这里不需要转置吗
+# 预测的翻译词的概率，   这里不需要转置，Dense与Embdding一样，keras封装的好
 # M_de x D_de
 decoder_dense = Dense(num_words_translation, activation='softmax')
 # N_de x T_de x M_de	M_de x D_de  ->  N_de x T_de x D_de (logits)
 decoder_outputs = decoder_dense(decoder_outputs)
 
-model = Model([encoder_inputs_placehoder, decoder_inputs_placehoder], decoder_outputs)
+model = Model(inputs=[encoder_inputs_placehoder, decoder_inputs_placehoder],
+			  outputs=decoder_outputs)
 
 # 编译
 model.compile(
@@ -134,7 +136,7 @@ model.compile(
 	metrics=['accuracy']
 )
 r = model.fit(
-	# 输入都是对齐过的 x相当于输出logits，y相当于是labels
+	# 输入都是对齐过的 输入x相当于输出logits，y相当于是labels
 	x=[encoder_inputs, decoder_inputs],
 	y=decoder_outputs_one_hot,
 	batch_size=BATCH_SIZE,
@@ -158,13 +160,18 @@ model.save('seq2seq.h5')
 
 
 ##### 做预测 #####
-encoder_model = Model(encoder_inputs_placehoder, encoder_states)
+# 预测时输入发生了改变，从NxT 变为 1xT
+# 编码器是独立的，映射输入序列到一维隐藏状态
+encoder_model = Model(inputs=encoder_inputs_placehoder,
+					  outputs=encoder_states)
 
+# 也同样就是将上面编码器的输出状态作为解码器初始状态的输入
+# 这里不直接用encoder_states是因为输入不定，即encoder_model.predict后的state充当decoder_states_inputs
 decoder_state_input_h = Input(shape=(LATENT_DIM,))
 decoder_state_input_c = Input(shape=(LATENT_DIM,))
 decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
 
-decoder_inputs_single = Input(shape=(1,))
+decoder_inputs_single = Input(shape=(1, ))
 decoder_inputs_single_x = decoder_embedding(decoder_inputs_single)
 
 # 输入改变了从NxTxM -> 1x1xM
@@ -177,10 +184,11 @@ decoder_outputs, h, c = decoder_lstm(
 #   initial_state=decoder_states_inputs
 # ) #gru
 # 2xM
-decoder_states = [h, c]
+decoder_states_outputs = [h, c]
 # decoder_states = [h] # gru
-# 1x1xD_de
+# 1x1xD_de  这里的输出即是logits了
 decoder_outputs = decoder_dense(decoder_outputs)
+
 
 
 # 采样model
@@ -188,53 +196,67 @@ decoder_outputs = decoder_dense(decoder_outputs)
 # outputs: y(t), h(t), c(t)
 # decoder_inputs_single: 1x1 decoder_states_inputs: 2xM 相加 -> [1x1, 1xM, 1xM]
 # [1x1x D_de, 1xM, 1xM]
+# decoder_inputs_single 对应输入的句子序列
+# decoder_states_inputs 对应encoder输出的隐藏状态
 decoder_model = Model(
-	[decoder_inputs_single] + decoder_states_inputs,
-	[decoder_outputs] + decoder_states
+	inputs=[decoder_inputs_single] + decoder_states_inputs,
+	outputs=[decoder_outputs] + decoder_states_outputs
 )
 
-index2word_eng = {v:k for k, v in word2index_inputs.items()}
-index2word_trans = {v:k for k, v in word2index_outputs.items()}
+# 为了获取真实的词
+index2word_eng = {v: k for k, v in word2index_inputs.items()}
+index2word_trans = {v: k for k, v in word2index_outputs.items()}
 
-i = np.random.choice(len(input_texts))
-input_seq = encoder_inputs[i: i + 1]
-# Encode the input as state vectors.
-states_value = encoder_model.predict(input_seq)
-# Generate empty target sequence of length 1.
-target_seq = np.zeros((1, 1))
 
-# Populate the first character of target sequence with the start character.
-# NOTE: tokenizer lower-cases all words
-target_seq[0, 0] = word2index_outputs['<sos>']
+def get_translation(input_seq):
+	# 将输入句子序列编码（映射）到一维的状态向量
+	states_value = encoder_model.predict(input_seq)
 
-# if we get this we break
-eos = word2index_outputs['<eos>']
+	# 翻译目标序列长度为1，即产生词
+	target_seq = np.zeros((1, 1))
+	# 输入一个随机句子，进行翻译，翻译的句子开始标志是sos。解码器一次只能产生一个词
+	# NOTE: tokenizer lower-cases all words
+	target_seq[0, 0] = word2index_outputs['<sos>']
+	# 如果预测到eos就结束
+	eos_index = word2index_outputs['<eos>']
 
-# Create the translation
-output_sentence = []
-for _ in range(max_len_translation):
-	output_tokens, h, c = decoder_model.predict(
-		x=[target_seq] + states_value
-	)
-	# output_tokens, h = decoder_model.predict(
-	#     [target_seq] + states_value
-	# ) # gru
+	# 产生翻译
+	output_sentence = []
+	for _ in range(max_len_translation):
+		output_tokens, h, c = decoder_model.predict(
+			x=[target_seq] + states_value
+		)
+		# output_tokens, h = decoder_model.predict(
+		#     [target_seq] + states_value
+		# ) # gru
 
-	# Get next word
-	index = np.argmax(output_tokens[0, 0, :])
+		# 得到下一个预测的词
+		index = np.argmax(output_tokens[0, 0, :])
+		# 遇到结束符eos，表示句子翻译结束,eos不加入翻译的句子中
+		if index == eos_index:
+			break
+		word = ''
+		if index > 0:
+			word = index2word_trans[index]
+			output_sentence.append(word)
 
-	# End sentence of EOS
-	if eos == index:
+		# 更新解码器的输入
+		target_seq[0, 0] = index
+		# 更新解码器输入状态
+		states_value = [h, c]
+
+
+	return output_sentence
+
+while True:
+	# 随机选择一个句子，并对其进行翻译
+	i = np.random.choice(len(input_texts))
+	input_seq = encoder_inputs[i: i + 1]  # 区别于encoder_inputs[i] shape:(5,)  前者shape是(1, 5)
+	input_sentence = [index2word_eng[word_index] for word_index in input_seq[0] if word_index > 0]
+	print("输入句子：", input_sentence)
+	output_sentence = get_translation(input_seq)
+	print("翻译得到句子：", output_sentence)
+
+	ans = input("Continue? [Y/n]")
+	if ans and ans.lower().startswith('n'):
 		break
-	word = ''
-	if index > 0:
-		word = index2word_trans[index]
-		output_sentence.append(word)
-
-	# Update the decoder input
-	# which is just the word just generated
-	target_seq[0, 0] = index
-	# Update states
-	states_value = [h, c]
-
-print(output_sentence)
