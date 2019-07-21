@@ -80,7 +80,7 @@ for n, decoder_output in enumerate(decoder_outputs):
 
 
 
-# 建立模型
+######## 编码器 #########
 # N_en x T_en
 encoder_inputs_placehoder = Input(shape=(max_len_input, ))
 # N_en x T_en x D_en
@@ -96,9 +96,9 @@ encoder_outputs, h, c = encoder(x)
 # encoder_outputs, h = encoder(x) #gru
 # 将编码器的状态与记忆单元作为解码器的初始状态输入  2 x 1 x M_en
 encoder_states = [h,  c]
-# encoder_states = [state_h] # gru
+# encoder_outputs = [state_h] # gru
 
-# 解码器
+######## 解码器 #########
 # N_de x T_de
 decoder_inputs_placehoder = Input(shape=(max_len_translation, ))
 # 解码器的embedding维度是编码器隐藏层的维度
@@ -110,7 +110,7 @@ decoder_lstm = LSTM(units=LATENT_DIM,
 					return_state=True
 )
 
-# 将编码器的状态与记忆单元作为解码器的初始状态输入
+# 将编码器lstm最后的输出与记忆单元作为解码器的初始状态输入
 # N_de x T_de x M_de
 decoder_outputs, _, _ = decoder_lstm(
 	inputs=decoder_inputs_x,
@@ -118,7 +118,7 @@ decoder_outputs, _, _ = decoder_lstm(
 )
 # decoder_outputs, _ = decoder_gru(
 #   decoder_inputs_x,
-#   initial_state=encoder_states
+#   initial_state=encoder_outputs
 # )
 # 预测的翻译词的概率，   这里不需要转置，Dense与Embdding一样，keras封装的好
 # M_de x D_de
@@ -126,10 +126,10 @@ decoder_dense = Dense(num_words_translation, activation='softmax')
 # N_de x T_de x M_de	M_de x D_de  ->  N_de x T_de x D_de (logits)
 decoder_outputs = decoder_dense(decoder_outputs)
 
+######## 解码器-编码器 共建翻译模型 #########
 model = Model(inputs=[encoder_inputs_placehoder, decoder_inputs_placehoder],
 			  outputs=decoder_outputs)
 
-# 编译
 model.compile(
 	optimizer='adam',
 	loss='categorical_crossentropy',
@@ -159,14 +159,14 @@ plt.show()
 model.save('seq2seq.h5')
 
 
-##### 做预测 #####
+######## 做预测 #########
 # 预测时输入发生了改变，从NxT 变为 1xT
 # 编码器是独立的，映射输入序列到一维隐藏状态
 encoder_model = Model(inputs=encoder_inputs_placehoder,
 					  outputs=encoder_states)
 
 # 也同样就是将上面编码器的输出状态作为解码器初始状态的输入
-# 这里不直接用encoder_states是因为输入不定，即encoder_model.predict后的state充当decoder_states_inputs
+# 这里不直接用encoder_outputs是因为输入不定，即encoder_model.predict后的state充当decoder_states_inputs
 decoder_state_input_h = Input(shape=(LATENT_DIM,))
 decoder_state_input_c = Input(shape=(LATENT_DIM,))
 decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
@@ -213,10 +213,10 @@ def get_translation(input_seq):
 	states_value = encoder_model.predict(input_seq)
 
 	# 翻译目标序列长度为1，即产生词
-	target_seq = np.zeros((1, 1))
+	target_word = np.zeros((1, 1))
 	# 输入一个随机句子，进行翻译，翻译的句子开始标志是sos。解码器一次只能产生一个词
 	# NOTE: tokenizer lower-cases all words
-	target_seq[0, 0] = word2index_outputs['<sos>']
+	target_word[0, 0] = word2index_outputs['<sos>']
 	# 如果预测到eos就结束
 	eos_index = word2index_outputs['<eos>']
 
@@ -224,10 +224,10 @@ def get_translation(input_seq):
 	output_sentence = []
 	for _ in range(max_len_translation):
 		output_tokens, h, c = decoder_model.predict(
-			x=[target_seq] + states_value
+			x=[target_word] + states_value
 		)
 		# output_tokens, h = decoder_model.predict(
-		#     [target_seq] + states_value
+		#     [target_word] + states_value
 		# ) # gru
 
 		# 得到下一个预测的词
@@ -241,7 +241,7 @@ def get_translation(input_seq):
 			output_sentence.append(word)
 
 		# 更新解码器的输入
-		target_seq[0, 0] = index
+		target_word[0, 0] = index
 		# 更新解码器输入状态
 		states_value = [h, c]
 
