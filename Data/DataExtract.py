@@ -8,6 +8,7 @@ from nltk.corpus import brown
 from nltk import pos_tag, word_tokenize
 import string
 from glob import glob
+import tarfile, re
 
 # 返回标准化了的训练集与测试集
 def load_minist_csv(pca=True):
@@ -474,3 +475,49 @@ def load_translation(file_name='jpn.txt', sample_num=float('inf')):
 		translation_outputs.append(translation_output)
 
 	return input_texts, translation_inputs, translation_outputs
+
+def tokenize(sent):
+	# tokenize('Bob dropped the apple. Where is the apple?')
+	# ['Bob', 'dropped', 'the', 'apple', '.', 'Where', 'is', 'the', 'apple', '?']
+	return [x.strip() for x in re.split('(\W+)?', sent) if x.strip()]
+
+challenges = {
+    # QA1 with 10,000 samples
+    'single_supporting_fact_10k': 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt',
+    # QA2 with 10,000 samples
+    'two_supporting_facts_10k': 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt',
+}
+
+# 数据集：序号 句子   若有tab，句子就表示提问，后面还有回答  答案所在的句子序号， 不过这个序号不用
+# 若句子中没tab，就是故事story
+# 一个故事中有多个提问
+# 返回：data每项都是对应着一个提问，以及提问前的故事（不包括提问，但提问占序号）
+def load_bAbI_challange_data(challenge_type='single_supporting_fact_10k', data_type='train'):
+	path = 'Data/NLP/Memory/tasks.tar.gz'
+	tar = tarfile.open(path)
+	challenge = challenges[challenge_type]
+	f = tar.extractfile(challenge.format(data_type))
+
+	data = []
+	# 保持到目前提问前的story
+	story = []
+	for line in f:
+		line = line.decode('utf-8').strip()
+		nid, sentence = line.split(' ', 1)
+		# 新的story
+		if int(nid) == 1:
+			story = []
+
+		if '\t' not in sentence:
+			# 添加story句
+			story.append(tokenize(sentence))
+		else:
+			# 处理问答句
+			question, answer, supporting = sentence.split('\t')
+			question = tokenize(question)
+			# 去除前面提问(if s)后的story  句子所在序号比文本中的少1
+			story_so_far = [[str(i)] + s for i, s in enumerate(story) if s]
+			data.append((story_so_far, question, answer))
+			# sotry还是要添加，保持行数对应
+			story.append('')
+	return data

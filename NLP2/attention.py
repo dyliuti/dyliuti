@@ -13,13 +13,14 @@ if len(K.tensorflow_backend._get_available_gpus()) > 0:
 	from keras.layers import CuDNNLSTM as LSTM
 	from keras.layers import CuDNNGRU as GRU
 
-# loss: 0.1806 - acc: 0.8924 - val_loss: 4.6954 - val_acc: 0.6752
+# jpa.txt: # loss: 0.1806 - acc: 0.8924 - val_loss: 4.6954 - val_acc: 0.6752
+# twitter_chat.txt: 100 epochs # 59s 9ms/step - loss: 0.0833 - acc: 0.9952 - val_loss: 2.8875 - val_acc: 0.7297
 
 BATCH_SIZE = 64  # Batch size for training.
 EPOCHS = 100
 LATENT_DIM = 256
 LATENT_DIM_DECODER = 256 # 较seq2seq多出的参数
-NUM_SAMPLES = 10000  # 训练样本句子数  总共44917行
+NUM_SAMPLES = 10000  # 训练样本句子数
 MAX_SEQUENCE_LENGTH = 100
 MAX_NUM_WORDS = 20000
 EMBEDDING_DIM = 100
@@ -28,7 +29,10 @@ EMBEDDING_DIM = 100
 word2vec = load_glove6B(EMBEDDING_DIM)
 # 翻译的输入句子， 翻译后的输出句子前后分别加标志成为inputs与outputs
 # translation_inputs 与 translation_outputs 分别作为 Teacher Forcing 的输入与输出
-input_texts, translation_inputs, translation_outputs = load_translation(sample_num=NUM_SAMPLES)
+# input_texts, translation_inputs, translation_outputs = load_translation(sample_num=NUM_SAMPLES)
+input_texts, translation_inputs, translation_outputs = load_translation(file_name='twitter_chat.txt', sample_num=NUM_SAMPLES)
+# 对于jpn.txt 总共44917行 设置10000可以。但对于twitter_chat.txt，总共就8490行，设置10000会导致x,y样本不一样，兼容下
+NUM_SAMPLES = min(NUM_SAMPLES, len(input_texts))
 
 # 将输入tokennize
 tokenizer_inputs = Tokenizer(num_words=MAX_NUM_WORDS)

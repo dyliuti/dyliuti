@@ -39,6 +39,27 @@ b = np.arange(48).reshape(2,3,8)
 # a有m列，结果就有m行
 output = K.batch_dot(K.constant(a), K.constant(b),  axes=1) # (2, 3, 4) (2, 3, 8) -> 2, 4, 8
 with tf.Session() as sess:
-    output_array = sess.run(output)
-    print( output_array  )
-    print( output_array.shape )
+	output_array = sess.run(output)
+	print( output_array  )
+	print( output_array.shape )
+
+
+def should_flatten(data_item):
+	return not isinstance(data_item, (str, bytes))
+
+# <data 'tuple'>: ([['0', 'Mary', 'moved', 'to', 'the', 'bathroom', '.'], ['1', 'John', 'went', 'to', 'the', 'hallway', '.']],
+# ['Where', 'is', 'Mary', '?'], 'bathroom')
+# <vocab 'list'>: ['<PAD>', '.', '0', '1', '10', '12', '13', '3', '4', '6', '7', '9', '?', 'Daniel', 'John', 'Mary', 'Sandra', 'Where', 'back',
+# 'bathroom', 'bedroom', 'garden', 'hallway', 'is', 'journeyed', 'kitchen', 'moved', 'office', 'the', 'to', 'travelled', 'went']
+def flatten(data):
+	for data_item in data:
+		print(data_item)
+		if should_flatten(data_item):
+			# 若果是story或query，就返回story或query每句中的单词
+			yield from flatten(data_item)
+		else:
+			# 如果是answer（str），就返回answer
+			yield data_item
+
+data = ([['0', 'Mary', 'moved', 'to', 'the', 'bathroom', '.'], ['1', 'John', 'went', 'to', 'the', 'hallway', '.']], ['Where', 'is', 'Mary', '?'], 'bathroom')
+res = flatten(data)
