@@ -87,36 +87,51 @@ inputs_test = stack_inputs(inputs_test_, max_story_len, max_story_sents_len)
 ############### 建立模型 ###############
 embedding_dim = 15
 
-# 将story转换为一系列的embedding vectgor，每个story就像“bag of words”
+# 将story转换为一系列的embedding vector，每个story就像“bag of words”
+# max_story_len x max_story_sents_len       ? 10 8
 input_story = Input(shape=(max_story_len, max_story_sents_len))
-embedded_story = Embedding(vocab_size, embedding_dim)(input_story)
-embedded_story = Lambda(lambda x: K.sum(x, axis=2))(embedded_story)
-print("input_story_.shape, embedded_story.shape:", input_story.shape, embedded_story.shape)
+# max_story_len x max_story_sents_len x D   ? 10 8 15
+embedded_story_ = Embedding(vocab_size, embedding_dim)(input_story)
+#                                           ? 10 15
+embedded_story = Lambda(lambda x: K.sum(x, axis=2))(embedded_story_)
+# ? 10 8   ->  ? 10 15
+print("input_story.shape, embedded_story.shape:", input_story.shape, embedded_story.shape)
+
 
 # 将question转换为embedding，也是bag of words
+# N x max_query_len		    ? 4
 input_question = Input(shape=(max_query_len, ))
-embedded_question = Embedding(vocab_size, embedding_dim)(input_question)
-embedded_question = Lambda(lambda x: K.sum(x, axis=1))(embedded_question)
+# N x max_query_len x D		? 4 15
+embedded_question__ = Embedding(vocab_size, embedding_dim)(input_question)
+# N x D						? 15
+embedded_question_ = Lambda(lambda x: K.sum(x, axis=1))(embedded_question__)
+
 
 # keras.core 为了可以和embedded_story进行点积
-embedded_question = Reshape(target_shape=(1, embedding_dim))(embedded_question)
+embedded_question = Reshape(target_shape=(1, embedding_dim))(embedded_question_)
+# ? 4  ->  ? 1 15
 print("inp_q.shape, emb_q.shape:", input_question.shape, embedded_question.shape)
 
 # embedded_story.shape        = (N, num sentences, embedding_dim)
 # embedded_question.shape     = (N, 1, embedding_dim)
 # 计算每个story中句子的权重
-x = dot(inputs=[embedded_story, embedded_question], axes=2)
-# flatten成一个vector
-x = Reshape(target_shape=(max_story_len, ))(x)
-x = Activation('softmax')(x)
+# ? 10 15   ? 1 15   ->  ? 10, 1
+x__ = dot(inputs=[embedded_story, embedded_question], axes=2)
+# ? 10
+x_ = Reshape(target_shape=(max_story_len, ))(x__)		# x 表示故事中每个映射到词向量的每个句子的权重
+x = Activation('softmax')(x_)
 # 再次unflatten，因为之后还需要点积
+# ? 10 1
 story_weights = Reshape(target_shape=(max_story_len, 1))(x)
 print("story_weights.shape:", story_weights.shape)
 
-x = dot(inputs=[story_weights, embedded_story], axes=1)
-x = Reshape(target_shape=(embedding_dim, ))(x)
-ans = Dense(vocab_size, activation='softmax')(x)
+# ? 10 1   ? 10 15 -> ? 1 15							# 顺序明朗，把story_weights与embedded_story位置换了，结果也是对的
+x_ans = dot(inputs=[story_weights, embedded_story], axes=1)
+x_ans_ = Reshape(target_shape=(embedding_dim, ))(x_ans)
+# ? 15 -> ? 32											# 再加一层Dense，又是逻辑回归，低维映射到高维，做分类
+ans = Dense(vocab_size, activation='softmax')(x_ans_)
 
+# ? 10 8   ? 4   ans:一个词
 model = Model([input_story, input_question], ans)
 
 model.compile(
@@ -138,19 +153,24 @@ r = model.fit(
 debug_model = Model([input_story, input_question], story_weights)
 
 # choose a random story
-story_idx = np.random.choice(len(train_data))
+story_index = np.random.choice(len(train_data))
 
 # get weights from debug model
-i = inputs_train[story_idx:story_idx+1]
-q = queries_train[story_idx:story_idx+1]
-w = debug_model.predict([i, q]).flatten()
+# 1x10x8
+input_ = inputs_train[story_index: story_index + 1]
+# 1x4
+ques = queries_train[story_index: story_index + 1]
+# 1x10x1
+w_ = debug_model.predict([input_, ques])
+# 10
+w = w_.flatten()
 
-story, question, ans = train_data[story_idx]
+one_story, one_question, ans = train_data[story_index]
 print("story:\n")
-for i, line in enumerate(story):
+for i, line in enumerate(one_story):
 	print("{:1.5f}".format(w[i]), "\t", " ".join(line))
 
-print("question:", " ".join(question))
+print("question:", " ".join(one_question))
 print("answer:", ans)
 
 
