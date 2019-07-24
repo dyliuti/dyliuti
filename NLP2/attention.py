@@ -173,7 +173,7 @@ context_last_word_concat_layer = Concatenate(axis=2)
 s = initial_s
 c = initial_c
 
-outputs = []
+outputs_ = []
 # 1xTxD 每次处理 Nx1xD
 for t in range(max_len_translation):  # Ty次
 	# 通过attention获取context : 1x1x2M_en
@@ -182,14 +182,16 @@ for t in range(max_len_translation):  # Ty次
 	selector = Lambda(lambda x: x[:, t: t+1])
 	# NxTxD -> Nx1xD
 	xt = selector(decoder_inputs_x)		# 这里其实是yt-1
-	# 前一个状态的yt-1与context作为t时的输入
+	print(xt.shape)
+	# 前一个状态的yt-1与context作为t时的输入	# N 1 2M+D
 	decoder_lstm_input = context_last_word_concat_layer([context, xt])
-	# 更新s、c
+	# 更新s、c  	o: N 256   无T是因为return_sequence=False
 	o, s, c = decoder_lstm(inputs=decoder_lstm_input,
 						   initial_state=[s, c])	# lstm输入的向量维度任意
 	# 使用dense layer分类，获得下个词的预测
-	decoder_outputs = decoder_dense(o)
-	outputs.append(decoder_outputs)
+	decoder_outputs = decoder_dense(o)		# N num_words
+	print("decoder_outputs:", decoder_outputs.shape)
+	outputs_.append(decoder_outputs)
 
 def stack_and_transponse(x):
 	# TxNxD
@@ -200,7 +202,7 @@ def stack_and_transponse(x):
 
 # 将转换函数作为一层
 stacker = Lambda(stack_and_transponse)
-outputs = stacker(outputs)
+outputs = stacker(outputs_)
 
 # 创建模型
 model = Model(inputs=[encoder_inputs_placehoder,
@@ -236,19 +238,23 @@ plt.show()
 
 ######## 做预测 #########
 # 预测时输入发生了改变，从NxT 变为 1xT
-# 编码器是独立的，映射输入序列到一维隐藏状态
+# 编码器是独立的，映射输入序列到 NxTx2M 维隐藏状态
+# encoder_inputs -> encoder_outputs(双向h状态)
 encoder_model = Model(inputs=encoder_inputs_placehoder,
 					  outputs=encoder_outputs)
-
+# 编码器输出输入经过Bidirection后的状态
 encoder_outputs_as_input = Input(shape=(max_len_input, LATENT_DIM * 2,))
+# Attention利用编码器全部输出与st-1生成context
 context = one_step_attention(encoder_outputs_as_input, initial_s)
-
+# yt-1
 decoder_inputs_single = Input(shape=(1, ))
 decoder_inputs_single_x = decoder_embedding(decoder_inputs_single)
 
 decoder_lstm_input = context_last_word_concat_layer([context, decoder_inputs_single_x])
+# context   yt-1  -> 预测 1x1x 2M+D
 o, s, c = decoder_lstm(inputs=decoder_lstm_input,
 					   initial_state=[initial_s, initial_c])
+# 1x1x num_words
 decoder_outputs = decoder_dense(o)
 
 decoder_model = Model(inputs=[decoder_inputs_single,
@@ -262,14 +268,16 @@ decoder_model = Model(inputs=[decoder_inputs_single,
 index2word_eng = {v: k for k, v in word2index_inputs.items()}
 index2word_trans = {v: k for k, v in word2index_outputs.items()}
 
+# 为什么预测时将编码器与解码器分开，有两个model，而训练模型时是从头到尾一步到位，就只有一个model？
+# 因为预测时，编码器是独立于解码器的，编码器只需一次产生Bi-lstm状态就好。分开就不用计算T次了。
+# 而训练模型时虽然也是采用上述方式计算，但需要更新参数，所以放在一个模型中?
 def get_translation(input_seq):
-	# 将输入句子序列编码（映射）到一维的状态向量,  就是lstm中的h
+	# 将输入句子序列编码映射输入序列到 NxTx2M 维隐藏状态, Bi-lstm
 	enc_output = encoder_model.predict(input_seq)
-
-	# 翻译目标序列长度为1，即产生词
+	# 翻译目标序列长度为1，即产生词    yt-1
 	translation_input_word = np.zeros((1, 1))
 	# 输入一个随机句子，进行翻译，翻译的句子开始标志是sos。解码器一次只能产生一个词
-	# NOTE: tokenizer lower-cases all words
+	# tokenizer 的作用之一就是全部变为小写单词，而不是大写
 	translation_input_word[0, 0] = word2index_outputs['<sos>']
 	# 如果预测到eos就结束
 	eos_index = word2index_outputs['<eos>']

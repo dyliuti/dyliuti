@@ -45,8 +45,9 @@ def stack_inputs(inputs, max_story_len, max_story_sents_len):
 		inputs[i] = np.concatenate( [story, np.zeros((max_story_len - story.shape[0], max_story_sents_len), 'int')] )
 	return np.stack(inputs)
 
-train_data = load_bAbI_challange_data(challenge_type='single_supporting_fact_10k', data_type='train')
-test_data = load_bAbI_challange_data(challenge_type='single_supporting_fact_10k', data_type='test')
+# 数据集改为two_support了
+train_data = load_bAbI_challange_data(challenge_type='two_supporting_facts_10k', data_type='train')
+test_data = load_bAbI_challange_data(challenge_type='two_supporting_facts_10k', data_type='test')
 
 data = train_data + test_data
 
@@ -86,51 +87,65 @@ inputs_test = stack_inputs(inputs_test_, max_story_len, max_story_sents_len)
 
 
 ############### 建立模型 ###############
-embedding_dim = 15
+embedding_dim = 30
+
+
+def embedded_and_sum(input, axis):
+	# max_story_len x max_story_sents_len x D   ? 10 8 15
+	embedded_story_ = Embedding(vocab_size, embedding_dim)(input)
+	#                                           ? 10 15
+	embedded_story = Lambda(lambda x: K.sum(x, axis=axis))(embedded_story_)
+	return embedded_story
+	# ? 10 8   ->  ? 10 15
+	print("input_story.shape, embedded_story.shape:", input_story.shape, embedded_story.shape)
 
 # 将story转换为一系列的embedding vector，每个story就像“bag of words”
 # max_story_len x max_story_sents_len       ? 10 8
 input_story = Input(shape=(max_story_len, max_story_sents_len))
-# max_story_len x max_story_sents_len x D   ? 10 8 15
-embedded_story_ = Embedding(vocab_size, embedding_dim)(input_story)
-#                                           ? 10 15
-embedded_story = Lambda(lambda x: K.sum(x, axis=2))(embedded_story_)
-# ? 10 8   ->  ? 10 15
-print("input_story.shape, embedded_story.shape:", input_story.shape, embedded_story.shape)
-
-
 # 将question转换为embedding，也是bag of words
 # N x max_query_len		    ? 4
 input_question = Input(shape=(max_query_len, ))
 # N x max_query_len x D		? 4 15
-embedded_question__ = Embedding(vocab_size, embedding_dim)(input_question)
+embedded_story_ = embedded_and_sum(input_story, 2)
 # N x D						? 15
-embedded_question_ = Lambda(lambda x: K.sum(x, axis=1))(embedded_question__)
+embedded_question_ = embedded_and_sum(input_question, 2)
 
 
-# keras.core 为了可以和embedded_story进行点积
-embedded_question = Reshape(target_shape=(1, embedding_dim))(embedded_question_)
-# ? 4  ->  ? 1 15
-print("inp_q.shape, emb_q.shape:", input_question.shape, embedded_question.shape)
+# final dense will be used in each hop
+dense_layer = Dense(embedding_dim, activation='elu')
 
-# embedded_story.shape        = (N, num sentences, embedding_dim)
-# embedded_question.shape     = (N, 1, embedding_dim)
-# 计算每个story中句子的权重
-# ? 10 15   ? 1 15   ->  ? 10, 1
-x__ = dot(inputs=[embedded_story, embedded_question], axes=2)
-# ? 10
-x_ = Reshape(target_shape=(max_story_len, ))(x__)		# x 表示故事中每个映射到词向量的每个句子的权重
-x = Activation('softmax')(x_)
-# 再次unflatten，因为之后还需要点积
-# ? 10 1
-story_weights = Reshape(target_shape=(max_story_len, 1))(x)
-print("story_weights.shape:", story_weights.shape)
+def hop(query, story):
+	# keras.core 为了可以和embedded_story进行点积
+	embedded_question = Reshape(target_shape=(1, embedding_dim))(query)
+	# ? 4  ->  ? 1 15
+	print("inp_q.shape, emb_q.shape:", input_question.shape, embedded_question.shape)
 
-# ? 10 1   ? 10 15 -> ? 1 15							# 顺序明朗，把story_weights与embedded_story位置换了，结果也是对的
-x_ans = dot(inputs=[story_weights, embedded_story], axes=1)
-x_ans_ = Reshape(target_shape=(embedding_dim, ))(x_ans)
-# ? 15 -> ? 32											# 再加一层Dense，又是逻辑回归，低维映射到高维，做分类
-ans = Dense(vocab_size, activation='softmax')(x_ans_)
+	# embedded_story.shape        = (N, num sentences, embedding_dim)
+	# embedded_question.shape     = (N, 1, embedding_dim)
+	# 计算每个story中句子的权重
+	# ? 10 15   ? 1 15   ->  ? 10, 1
+	x__ = dot(inputs=[story, embedded_question], axes=2)
+	# ? 10
+	x_ = Reshape(target_shape=(max_story_len, ))(x__)		# x 表示故事中每个映射到词向量的每个句子的权重
+	x = Activation('softmax')(x_)
+	# 再次unflatten，因为之后还需要点积
+	# ? 10 1
+	story_weights = Reshape(target_shape=(max_story_len, 1))(x)
+	print("story_weights.shape:", story_weights.shape)
+
+	# ? 10 1   ? 10 15 -> ? 1 15							# 顺序明朗，把story_weights与embedded_story位置换了，结果也是对的
+	x_ans = dot(inputs=[story_weights, embedded_story], axes=1)
+	x_ans_ = Reshape(target_shape=(embedding_dim, ))(x_ans)
+	# ? 15 -> ? 32											# 再加一层Dense，又是逻辑回归，低维映射到高维，做分类
+	# ans = Dense(vocab_size, activation='softmax')(x_ans_)
+	ans = Dense(embedding_dim, activation='elu')(x_ans_)
+	return ans
+
+ans1, embedded_story, story_weights1 = hop(embedded_question_, embedded_story_)
+ans2, _,              story_weights2 = hop(ans1,               embedded_story)
+
+ans = Dense(vocab_size, activation='softmax')(ans2)
+
 
 # ? 10 8   ? 4   ans:一个词
 model = Model([input_story, input_question], ans)
@@ -145,13 +160,13 @@ model.compile(
 r = model.fit(
 	[inputs_train, queries_train],
 	answers_train,
-	epochs=4,
+	epochs=30,
 	batch_size=32,
 	validation_data=([inputs_test, queries_test], answers_test)
 )
 
 # 查看每个sotry中句子的权重
-debug_model = Model([input_story, input_question], story_weights)
+debug_model = Model([input_story, input_question], [story_weights1, story_weights2])
 
 # 随机选一个story
 story_index = np.random.choice(len(train_data))
@@ -162,15 +177,27 @@ input_ = inputs_train[story_index: story_index + 1]
 # 1x4
 ques = queries_train[story_index: story_index + 1]
 # 1x10x1
-w_ = debug_model.predict([input_, ques])
+w1_, w2_ = debug_model.predict([input_, ques])
 # 10
-w = w_.flatten()
+w1 = w1_.flatten()
+w2 = w2_.flatten()
 
 one_story, one_question, ans = train_data[story_index]
 print("story:\n")
 for i, line in enumerate(one_story):
-	print("{:1.5f}".format(w[i]), "\t", " ".join(line))
+	print("{:1.5f}".format(w1[i]), "\t", "{:1.5f}".format(w2[i]), "\t", " ".join(line))
 
 print("question:", " ".join(one_question))
 print("answer:", ans)
+print("prediction:", vocab[ np.argmax(model.predict([input_, ques])[0]) ])
 
+plt.plot(r.history['loss'], label='loss')
+plt.plot(r.history['val_loss'], label='val_loss')
+plt.legend()
+plt.show()
+
+# accuracies
+plt.plot(r.history['acc'], label='acc')
+plt.plot(r.history['val_acc'], label='val_acc')
+plt.legend()
+plt.show()
