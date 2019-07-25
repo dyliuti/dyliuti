@@ -7,6 +7,8 @@ import keras.backend as K
 import numpy as np
 import matplotlib.pyplot as plt
 
+# loss: 0.1388 - acc: 0.9643 - val_loss: 0.3998 - val_acc: 0.9020
+
 def should_flatten(data_item):
 	return not isinstance(data_item, (str, bytes))
 
@@ -89,69 +91,67 @@ inputs_test = stack_inputs(inputs_test_, max_story_len, max_story_sents_len)
 ############### 建立模型 ###############
 embedding_dim = 30
 
-
+# 将story多个句子映射到一个句子，将question单个句子映射到一个词向量
 def embedded_and_sum(input, axis):
-	# max_story_len x max_story_sents_len x D   ? 10 8 15
-	embedded_story_ = Embedding(vocab_size, embedding_dim)(input)
-	#                                           ? 10 15
-	embedded_story = Lambda(lambda x: K.sum(x, axis=axis))(embedded_story_)
-	return embedded_story
-	# ? 10 8   ->  ? 10 15
-	print("input_story.shape, embedded_story.shape:", input_story.shape, embedded_story.shape)
-
-# 将story转换为一系列的embedding vector，每个story就像“bag of words”
-# max_story_len x max_story_sents_len       ? 10 8
-input_story = Input(shape=(max_story_len, max_story_sents_len))
-# 将question转换为embedding，也是bag of words
-# N x max_query_len		    ? 4
-input_question = Input(shape=(max_query_len, ))
-# N x max_query_len x D		? 4 15
-embedded_story_ = embedded_and_sum(input_story, 2)
-# N x D						? 15
-embedded_question_ = embedded_and_sum(input_question, 2)
-
-
-# final dense will be used in each hop
-dense_layer = Dense(embedding_dim, activation='elu')
-
-def hop(query, story):
-	# keras.core 为了可以和embedded_story进行点积
-	embedded_question = Reshape(target_shape=(1, embedding_dim))(query)
-	# ? 4  ->  ? 1 15
-	print("inp_q.shape, emb_q.shape:", input_question.shape, embedded_question.shape)
-
 	# embedded_story.shape        = (N, num sentences, embedding_dim)
 	# embedded_question.shape     = (N, 1, embedding_dim)
+	# story：? T 8 30		quesetion: ? 4 30
+	embedded_input = Embedding(vocab_size, embedding_dim)(input)
+	# story：? T 30			quesetion: ? 30
+	embedded_input = Lambda(lambda x: K.sum(x, axis=axis))(embedded_input)
+	return embedded_input
+
+# 将story转换为一系列的embedding vector，每个story就像“bag of words”
+input_story = Input(shape=(max_story_len, max_story_sents_len))
+# 将question转换为embedding，也是bag of words
+input_question = Input(shape=(max_query_len, ))
+# story：? T 30			quesetion: ? 30
+# 创建embedding代表故事中的每一行
+embedded_story_ = embedded_and_sum(input_story, 2)
+embedded_question_ = embedded_and_sum(input_question, 1)
+
+
+def hop(query, story):
+	# ? 30  ->  ? 1 30 为了和story点积
+	embedded_question = Reshape(target_shape=(1, embedding_dim))(query)
 	# 计算每个story中句子的权重
-	# ? 10 15   ? 1 15   ->  ? 10, 1
+	# ? T 30   ? 1 30   ->  ? T, 1
 	x__ = dot(inputs=[story, embedded_question], axes=2)
-	# ? 10
+	# ? T
 	x_ = Reshape(target_shape=(max_story_len, ))(x__)		# x 表示故事中每个映射到词向量的每个句子的权重
 	x = Activation('softmax')(x_)
 	# 再次unflatten，因为之后还需要点积
-	# ? 10 1
+	# ? T 1
 	story_weights = Reshape(target_shape=(max_story_len, 1))(x)
-	print("story_weights.shape:", story_weights.shape)
 
-	# ? 10 1   ? 10 15 -> ? 1 15							# 顺序明朗，把story_weights与embedded_story位置换了，结果也是对的
-	x_ans = dot(inputs=[story_weights, embedded_story], axes=1)
-	x_ans_ = Reshape(target_shape=(embedding_dim, ))(x_ans)
-	# ? 15 -> ? 32											# 再加一层Dense，又是逻辑回归，低维映射到高维，做分类
+	# 区别：使用新的Embedding,产生新的story与ans -> ? T 30
+	# embedding代表第二个故事中的每一行不然。作用：hop产生的weights与返回的ans不一样
+	embedded_story2_ = embedded_and_sum(input_story, 2)
+	# ? T 1   ? T M -> ? 1 M								# 顺序明朗，把story_weights与embedded_story位置换了，结果也是对的
+	ans = dot(inputs=[story_weights, embedded_story2_], axes=1)
+	ans = Reshape(target_shape=(embedding_dim, ))(ans)
+	# ? M -> ? vocab_size									# 再加一层Dense，又是逻辑回归，低维映射到高维，做分类
 	# ans = Dense(vocab_size, activation='softmax')(x_ans_)
-	ans = Dense(embedding_dim, activation='elu')(x_ans_)
-	return ans
+	# 区别： Dense，activation类别，之前这里没有
+	# ？M -> ? M 虽然shape每变，但在这里加Dense有助于做个转换，更利于下一步hop   去掉的话准确率会将降低
+	# 编码解码不是特别合适，可以理解为特征转换
+	ans = Dense(embedding_dim, activation='elu')(ans)
+	return ans, embedded_story2_, story_weights
 
 ans1, embedded_story, story_weights1 = hop(embedded_question_, embedded_story_)
+# 第一个hop产生的ans传给第二个hop，可以确保weights不同
 ans2, _,              story_weights2 = hop(ans1,               embedded_story)
+# 不能返回ans1_index 模型的输出值必须是一个 Keras `Layer`
+# ans1_index = K.argmax(ans1)
 
 ans = Dense(vocab_size, activation='softmax')(ans2)
 
 
-# ? 10 8   ? 4   ans:一个词
+# ? T 8   ? 4   ans:一个词
 model = Model([input_story, input_question], ans)
 
 model.compile(
-	optimizer=RMSprop(lr=1e-2),
+	optimizer=RMSprop(lr=5e-3),	# 训练集准确率不够高，降低学习率试试
 	loss='sparse_categorical_crossentropy',
 	metrics=['accuracy']
 )
@@ -166,19 +166,19 @@ r = model.fit(
 )
 
 # 查看每个sotry中句子的权重
-debug_model = Model([input_story, input_question], [story_weights1, story_weights2])
+debug_model = Model([input_story, input_question], [story_weights1, story_weights2, ans1])
 
 # 随机选一个story
 story_index = np.random.choice(len(train_data))
 
 # 从模型中取出权重
-# 1x10x8
+# 1xTx8
 input_ = inputs_train[story_index: story_index + 1]
 # 1x4
 ques = queries_train[story_index: story_index + 1]
-# 1x10x1
-w1_, w2_ = debug_model.predict([input_, ques])
-# 10
+# 1xTx1
+w1_, w2_, ans1_indexs= debug_model.predict([input_, ques])
+# T
 w1 = w1_.flatten()
 w2 = w2_.flatten()
 
@@ -188,8 +188,14 @@ for i, line in enumerate(one_story):
 	print("{:1.5f}".format(w1[i]), "\t", "{:1.5f}".format(w2[i]), "\t", " ".join(line))
 
 print("question:", " ".join(one_question))
+# argmax返回值与ans1_indexs有相同维度，ans1_indexs一维，返回值也1维
+# ans1没经过Dense进行解码 没M->num_words, 每以ans1为目标进行梯度下降迭代。 取argmax没意义
+# ans1_index = np.argmax(ans1_indexs)
+# print("middle answer:", vocab[ ans1_index ])
 print("answer:", ans)
-print("prediction:", vocab[ np.argmax(model.predict([input_, ques])[0]) ])
+pred_indexs = model.predict([input_, ques])	# 输出ans
+pred_index = np.argmax(pred_indexs)
+print("prediction:", vocab[ pred_index ])
 
 plt.plot(r.history['loss'], label='loss')
 plt.plot(r.history['val_loss'], label='val_loss')
