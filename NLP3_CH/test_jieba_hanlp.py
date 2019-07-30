@@ -97,26 +97,27 @@ import gensim
 import numpy as np
 import matplotlib.pyplot as plt
 # %matplotlib inline
-#设置文件路径
+# 设置文件路径
 dir_ = "./Data/NLP/Chinese/lda/"
 file_desc = "".join([dir_,'car.csv'])
 stop_words = "".join([dir_,'stopwords.txt'])
-#定义停用词
-stopwords=pd.read_csv(stop_words,index_col=False,quoting=3,sep="\t",names=['stopword'], encoding='utf-8')
-stopwords=stopwords['stopword'].values
-#加载语料
+# 定义停用词
+stopwords = pd.read_csv(stop_words,index_col=False,quoting=3,sep="\t",names=['stopword'], encoding='utf-8')
+stopwords = stopwords['stopword'].values
+# 加载语料
 df = pd.read_csv(file_desc, encoding='gbk')
-#删除nan行
+# 删除nan行
 df.dropna(inplace=True)
 lines = df.content.values.tolist()
-#开始分词
-sentences=[]
+# 开始分词
+sentences = []
 for line in lines:
 	try:
+		# 分隔line，然后对分词后的词
 		segs_ = jieba.lcut(line)
-		segs = [v for v in segs_ if not str(v).isdigit()]		#去数字
-		segs = list(filter(lambda x: x.strip(), segs))   		#去左右空格
-		segs = list(filter(lambda x: x not in stopwords, segs)) #去掉停用词
+		segs = [v for v in segs_ if not str(v).isdigit()]		# 去数字
+		segs = list(filter(lambda x: x.strip(), segs))   		# 去左右空格
+		segs = list(filter(lambda x: x not in stopwords, segs)) # 去掉停用词
 		sentences.append(segs)
 	except Exception:
 		print(line)
@@ -141,13 +142,16 @@ num_show_term = 8 # 每个主题下显示几个词
 num_topics  = 10
 for i, k in enumerate(range(num_topics)):
 	ax = plt.subplot(2, 5, i+1)
-	item_dis_all = lda.get_topic_terms(topicid=k)
-	item_dis = np.array(item_dis_all[:num_show_term])
-	ax.plot(range(num_show_term), item_dis[:, 1], 'b*')
-	item_word_id = item_dis[:, 0].astype(np.int)
-	word = [dictionary.id2token[i] for i in item_word_id]
+	# 列表，列表里是字典项  （index，频率）
+	index_freq = lda.get_topic_terms(topicid=k)
+	#
+	index_freq_num = np.array(index_freq[:num_show_term])
+	ax.plot(range(num_show_term), index_freq_num[:, 1], 'b*')		# 展示评率
+	indexs = index_freq_num[:, 0].astype(np.int)						# 词索引
+	words = [dictionary.id2token[index] for index in indexs]
 	ax.set_ylabel(u"概率")
 	for j in range(num_show_term):
-		ax.text(j, item_dis[j, 1], word[j], bbox=dict(facecolor='green',alpha=0.1))
+		# 纵坐标频率，s是words
+		ax.text(x=j, y=index_freq_num[j, 1], s=words[j], bbox=dict(facecolor='green',alpha=0.1))
 plt.suptitle(u'9个主题及其7个主要词的概率', fontsize=18)
 plt.show()
