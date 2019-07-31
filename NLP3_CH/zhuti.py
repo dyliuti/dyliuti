@@ -83,3 +83,111 @@ from sklearn.svm import SVC
 svm = SVC(kernel='linear')
 svm.fit(x_inputs, y_train)
 print(svm.score(vec.transform(x_test), y_test))
+
+
+
+
+
+def preprocess_text(content_lines, sentences):
+	for line in content_lines:
+		try:
+			segs = jieba.lcut(line)
+			segs = [v for v in segs if not str(v).isdigit()]		# 去数字
+			segs = list(filter(lambda x: x.strip(), segs))   		# 去左右空格
+			segs = list(filter(lambda x: len(x)>1, segs)) 			# 长度为1的字符
+			segs = list(filter(lambda x: x not in stopwords, segs)) # 去掉停用词
+			# ('词 词 词'， '类别')形式
+			sentences.append((" ".join(segs)))			# 打标签
+		except Exception:
+			print("Exception: ", line)
+			continue
+
+
+###########  聚类  ###########
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+
+# 调用函数、生成训练数据
+sentences_ = []
+preprocess_text(laogong, sentences_)
+preprocess_text(laopo, sentences_)
+preprocess_text(erzi, sentences_)
+preprocess_text(nver, sentences_)
+
+# 将文本中的词语转换为词频矩阵 矩阵元素a[i][j] 表示j词在i类文本下的词频
+vectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5)
+# 统计每个词语的tf-idf权值
+transformer = TfidfTransformer()
+# 第一个fit_transform是计算tf-idf 第二个fit_transform是将文本转为词频矩阵
+tfidf = transformer.fit_transform(vectorizer.fit_transform(sentences_))
+# 获取词袋模型中的所有词语
+word = vectorizer.get_feature_names()
+# 将tf-idf矩阵抽取出来，元素w[i][j]表示j词在i类文本中的tf-idf权重
+weight = tfidf.toarray()
+# 查看特征大小
+print('Features length: ' + str(len(word)))
+
+numClass = 4  # 聚类分几簇
+clf = KMeans(n_clusters=numClass, max_iter=10000, init="k-means++", tol=1e-6)  # 这里也可以选择随机初始化init="random"
+pca = PCA(n_components=10)  # 降维
+TnewData = pca.fit_transform(weight)  # 载入N维
+s = clf.fit(TnewData)
+
+def plot_cluster(result,newData,numClass):
+	plt.figure(2)
+	Lab = [[] for i in range(numClass)]
+	index = 0
+	for labi in result:
+		Lab[labi].append(index)
+		index += 1
+	color = ['oy', 'ob', 'og', 'cs', 'ms', 'bs', 'ks', 'ys', 'yv', 'mv', 'bv', 'kv', 'gv', 'y^', 'm^', 'b^', 'k^',
+			 'g^'] * 3
+	for i in range(numClass):
+		x1 = []
+		y1 = []
+		for ind1 in newData[Lab[i]]:
+			# print ind1
+			try:
+				y1.append(ind1[1])
+				x1.append(ind1[0])
+			except:
+				pass
+		plt.plot(x1, y1, color[i])
+
+	#绘制初始中心点
+	x1 = []
+	y1 = []
+	for ind1 in clf.cluster_centers_:
+		try:
+			y1.append(ind1[1])
+			x1.append(ind1[0])
+		except:
+			pass
+	plt.plot(x1, y1, "rv") #绘制中心
+	plt.show()
+
+
+pca = PCA(n_components=2)  # 输出两维
+newData = pca.fit_transform(weight)  # 载入N维
+result = list(clf.predict(TnewData))
+plot_cluster(result, newData, numClass)
+
+
+###### TSNE降维 #########
+from sklearn.manifold import TSNE
+
+ts = TSNE(2)
+newData = ts.fit_transform(weight)
+result = list(clf.predict(TnewData))
+plot_cluster(result, newData, numClass)
+
+from sklearn.manifold import TSNE
+
+# 为了更好的表达和获取更具有代表性的信息，在展示（可视化）高维数据时，更为一般的处理，常常先用 PCA 进行降维，再使用 TSNE：
+newData = PCA(n_components=4).fit_transform(weight)  # 载入N维
+newData = TSNE(2).fit_transform(newData)
+result = list(clf.predict(TnewData))
+plot_cluster(result, newData, numClass)
