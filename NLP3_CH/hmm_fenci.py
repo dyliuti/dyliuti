@@ -15,7 +15,10 @@ class HMM_Model:
 		self.state_count = {}
 		self.states = {}
 		self.inited = False
+
 	# 初始化
+	# StatusSet：状态值集合，状态值集合为 (B, M, E, S)，其中 B 为词的首个字，M 为词中间的字，
+	# E 为词语中最后一个字，S 为单个字，B、M、E、S 每个状态代表的是该字在词语中的位置。
 	def setup(self):
 		for state in self.states:
 			# build trans_mat
@@ -42,7 +45,7 @@ class HMM_Model:
 		elif code == "pickle":
 			pickle.dump(data, fw)
 		fw.close()
-	#模型加载
+	# 模型加载
 	def load(self, filename, code):
 		fr = open(filename, 'r', encoding='utf-8')
 		if code == "json":
@@ -56,7 +59,11 @@ class HMM_Model:
 		self.state_count = model["state_count"]
 		self.inited = True
 		fr.close()
-	#模型训练
+
+	# 模型训练
+	# 使用的标注数据集， 因此可以使用更简单的监督学习算法，训练函数输入观测序列和状态序列进行训练，
+	# 依次更新各矩阵数据。类中维护的模型参数均为频数而非频率， 这样的设计使得模型可以进行在线训练，
+	# 使得模型随时都可以接受新的训练数据继续训练，不会丢失前次训练的结果。
 	def do_train(self, observes, states):
 		if not self.inited:
 			self.setup()
@@ -72,7 +79,8 @@ class HMM_Model:
 					self.emit_mat[states[i]][observes[i]] = 1
 				else:
 					self.emit_mat[states[i]][observes[i]] += 1
-	#HMM计算
+	# HMM计算
+	# 预测前，需将数据结构的频数转换为频率
 	def get_prob(self):
 		init_vec = {}
 		trans_mat = {}
@@ -101,7 +109,9 @@ class HMM_Model:
 				else:
 					emit_mat[key1][key2] = float(self.emit_mat[key1][key2]) / default
 		return init_vec, trans_mat, emit_mat
-	#模型预测
+
+	# 模型预测
+	# 采用 Viterbi 算法求得最优路径
 	def do_predict(self, sequence):
 		tab = [{}]
 		path = {}
@@ -133,7 +143,7 @@ class HMM_Model:
 		prob, state = max([(tab[len(sequence) - 1][state], state) for state in self.states])
 		return path[state]
 
-
+# 对输入的训练语料中的每个词进行标注，因为训练数据是空格隔开的，可以进行转态标注
 def get_tags(src):
 	tags = []
 	if len(src) == 1:
@@ -147,6 +157,7 @@ def get_tags(src):
 		tags.append('E')
 	return tags
 
+# 根据预测得到的标注序列将输入的句子分割为词语列表，也就是预测得到的状态序列，解析成一个 list 列表进行返回
 def cut_sent(src, tags):
 	word_list = []
 	start = -1
@@ -185,10 +196,12 @@ class HMM_FenCi(HMM_Model):
 		super(HMM_FenCi, self).__init__(*args, **kwargs)
 		self.states = STATES
 		self.data = None
-	#加载训练数据
+	# 加载训练数据
 	def read_txt(self, filename):
 		self.data = open(filename, 'r', encoding="utf-8")
-	#模型训练函数
+
+	# 模型训练函数
+	# 根据单词生成观测序列和状态序列，并通过父类的 do_train() 方法进行训练
 	def train(self):
 		if not self.inited:
 			self.setup()
@@ -218,7 +231,8 @@ class HMM_FenCi(HMM_Model):
 				self.do_train(observes, states)
 			else:
 				pass
-	#模型分词预测
+	# 模型分词预测
+	# 模型训练好之后，通过该方法进行分词测试
 	def lcut(self, sentence):
 		try:
 			tags = self.do_predict(sentence)
