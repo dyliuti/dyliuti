@@ -120,3 +120,17 @@ model.train(iter_data, total_examples=model.corpus_count,epochs=1000,start_alpha
 #根据标签找最相似的，这里只有黄河和长江，所以结果为长江，并计算出了相似度
 print(model.docvecs.most_similar('黄河'))
 print(model.docvecs.similarity('黄河','长江'))
+
+
+
+
+import genius
+text = u"""中文自然语言处理是人工智能技术的一个重要分支。"""
+seg_list = genius.seg_text(
+    text,
+    use_combine=True,
+    use_pinyin_segment=True,
+    use_tagging=True,
+    use_break=True
+)
+print(' '.join([word.text for word in seg_list])
