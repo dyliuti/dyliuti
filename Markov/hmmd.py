@@ -26,9 +26,10 @@ def fit(sequences, epochs=30):
 	trans_mat = random_normalized(M, M)
 	emit_mat = random_normalized(M, V)
 
+	costs = []
 	for epoch in range(epochs):
-		alpha = []
-		beta = []
+		alphas = []
+		betas = []
 		p_sequence = np.zeros(sequences_num)
 
 		for n in range(sequences_num):
@@ -42,3 +43,54 @@ def fit(sequences, epochs=30):
 				# 观察者概率：P(Y0..Yt-1, Zt-1) * P(Zt | Zt-1) * P(Yt | Zt) -> P(Y0..Yt, Zt)
 				alpha[t] = alpha[t-1].dot(trans_mat) * emit_mat[:, sequence[t]]
 			p_sequence = alpha[-1].sum()
+			alphas.append(alpha)
+
+			beta = np.zeros(shape=(T, M))
+			beta[-1] = 1
+			for t in range(T-2, -1, -1):	# 不包括-1 [ )
+				# MxM M -> M
+				beta[t] = trans_mat.dot(emit_mat[:, sequence[t+1]] * beta[t+1])
+				tmp = np.zeros(M)
+				for i in range(M):
+					for j in range(M):
+						tmp[i] += trans_mat[i][j] * emit_mat[j][t+1] * beta[t+1]
+				print("diff:", np.abs(beta[t] - tmp).sum())
+			betas.append(beta)
+
+		cost = np.sum(np.log(p_sequence))
+		costs.append(cost)
+		# 重新估计pi, trans_mat, emit_mat
+		pi = np.sum((alphas[n][0] * betas[n][0]) / p_sequence[n] for n in range(sequences_num)) / sequences_num
+
+		den_trans = np.zeros(shape=(M, 1))
+		den_emit = np.zeros(shape=(M, 1))
+		trans_num = 0
+		emit_num = 0
+		for n in range(sequences_num):
+			sequence = sequences[n]
+			T = len(sequence)
+
+			den_trans += (alphas[n][: -1] * betas[n][: -1]).sum(axis=0, keepdims=True).T / p_sequence[n]
+			den_emit += (alphas[n] * betas[n]).sum(axis=0, keepdims=True).T / p_sequence[n]
+
+			# 计算trans_mat的分子
+			trans_num_n = np.zeros(shape=(M, M))
+			for i in range(M):
+				for j in range(M):
+					for t in range(T - 1):
+						trans_num_n[i, j] += alphas[n][t, i] * trans_mat[i, j] * emit_mat[j, sequence[t+1]] * betas[n][t+1, j]
+			trans_num += trans_num_n / p_sequence[n]
+
+			emit_num_n = np.zeros(shape=(M, V))
+			for i in range(M):
+				for t in range(T):
+					emit_num_n[i, sequence[t]] += alphas[n][t, i] * betas[n][t, i]
+			emit_num += emit_num_n / p_sequence[n]
+
+		trans_mat = trans_num / den_trans
+		emit_mat = emit_num / den_emit
+	print("trans_mat:", trans_mat)
+	print("emit_mat:", emit_mat)
+	print("pi:", pi)
+
+
