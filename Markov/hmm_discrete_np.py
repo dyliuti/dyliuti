@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime
-
 
 def random_normalized(d1, d2):
 	x = np.random.random((d1, d2))
@@ -26,6 +24,7 @@ emit_mat = random_normalized(M, V)
 
 epochs = 30
 costs = []
+# 使用baum-Welch算法（前向后向）来实现EM算法
 for epoch in range(epochs):
 	alphas = []
 	betas = []
@@ -149,3 +148,6 @@ print("对于真实参数求得的极大似然值:", L)
 # viterbi
 print("对于 ", sequences[0], " 最好的状态序列：")
 print(get_state_sequence(sequences[0]))
+
+plt.plot(costs)
+plt.show()
