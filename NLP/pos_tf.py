@@ -13,11 +13,11 @@ def flatten(l):
 
 
 # get the data
-X_train, Y_train, X_test, Y_test, word2idx = load_chunking(split_sequence=True)
+X_train, Y_train, X_test, Y_test, word2index = load_chunking(split_sequence=True)
 # tags类别数
 class_set = set(flatten(Y_train)) | set(flatten(Y_test))
-class_num = len(class_set) + 1
-V = len(word2idx) + 2  # vocab size (+1 for unknown, +1 b/c start from 1)
+class_num = len(class_set)
+V = len(word2index) # + 2  # vocab size (+1 for unknown, +1 b/c start from 1)
 
 
 # training config

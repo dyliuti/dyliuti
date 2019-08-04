@@ -13,7 +13,7 @@ for line in open('Markov/coin_data.txt'):
 	sequences.append(sequence_)
 
 M = 2
-# 观测量种类  硬币抛掷就两种观测结果
+# 观测量种类  硬币抛掷就两种观测结果   +1是因为序号从0开始
 V = max(max(sequence) for sequence in sequences) + 1
 sequences_num = len(sequences)
 
@@ -99,32 +99,32 @@ print("emit_mat:", emit_mat)
 print("pi:", pi)
 
 
-def likelihood(x):
+def likelihood(sequence):
 	# returns log P(x | model)
 	# 使用前向后向算法求得 P(Zt|model)
-	T = len(x)
-	alpha_ = np.zeros((T, M))
-	alpha_[0] = pi * emit_mat[:, x[0]]
+	T = len(sequence)
+	alpha_ = np.zeros(shape=(T, M))
+	alpha_[0] = pi * emit_mat[:, sequence[0]]
 	for t in range(1, T):
-		alpha_[t] = alpha_[t - 1].dot(trans_mat) * emit_mat[:, x[t]]
+		alpha_[t] = alpha_[t - 1].dot(trans_mat) * emit_mat[:, sequence[t]]
 	return alpha_[-1].sum()
 
-def likelihood_multi(X):
-	return np.array([likelihood(x) for x in X])
+def likelihood_multi(sequences):
+	return np.array([likelihood(sequence) for sequence in sequences])
 
-def log_likelihood_multi(X):
-	return np.log(likelihood_multi(X))
+def log_likelihood_multi(sequences):
+	return np.log(likelihood_multi(sequences))
 
 
-def get_state_sequence(x):
+def get_state_sequence(sequence):
 	# 使用Viterbi算法，给定观测序列，返回最有可能的状态序列
-	T = len(x)
+	T = len(sequence)
 	delta = np.zeros((T, M))
 	psi = np.zeros((T, M))
-	delta[0] = pi * emit_mat[:, x[0]]
+	delta[0] = pi * emit_mat[:, sequence[0]]
 	for t in range(1, T):
 		for j in range(M):
-			delta[t, j] = np.max(delta[t - 1] * trans_mat[:, j]) * emit_mat[j, x[t]]
+			delta[t, j] = np.max(delta[t - 1] * trans_mat[:, j]) * emit_mat[j, sequence[t]]
 			psi[t, j] = np.argmax(delta[t - 1] * trans_mat[:, j])
 
 	# 回溯
