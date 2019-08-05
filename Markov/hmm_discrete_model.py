@@ -111,12 +111,19 @@ class HMM:
 		T = len(sequence)
 		delta = np.zeros((T, self.M))
 		psi = np.zeros((T, self.M))
-		delta[0] = self.pi * self.emit_mat[:, sequence[0]]
+		delta[0] = self.pi * self.emit_mat[:, sequence[0]]	# M种最优
 		for t in range(1, T):
 			for j in range(self.M):
-				delta[t, j] = np.max(delta[t - 1] * self.trans_mat[:, j]) * self.emit_mat[j, sequence[t]]
-				psi[t, j] = np.argmax(delta[t - 1] * self.trans_mat[:, j])
-
+				# delta[t, j] = np.max(delta[t - 1] * self.trans_mat[:, j]) * self.emit_mat[j, sequence[t]]
+				# state_i = np.argmax(delta[t - 1] * self.trans_mat[:, j])
+				# M, M, 1 -> M,  沿着路径到t, 状态j时，输出O1,O2...Ot的最大概率。
+				delta[t, j] = np.max(delta[t - 1] * self.trans_mat[:, j] * self.emit_mat[j, sequence[t]])
+				# 记录输出O1,O2...Ot的概率最大时， 记录下t位置,状态j时的前一个状态i（argmax的是M个i状态）
+				state_i = np.argmax(delta[t - 1] * self.trans_mat[:, j] * self.emit_mat[j, sequence[t]])
+				psi[t, j] = state_i
+		# [1 0 1 0 1 1 0 1 0 1 0 1 0 1 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0] [2.42446276e-14 4.17974985e-14], [9.96230425e-14 8.20578832e-14]
+		# [0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1] [3.12739011e-14 4.75255417e-14], [1.39170251e-14 5.36752937e-12]
+		print(delta[T-1])
 		# 回溯
 		states = np.zeros(T, dtype=np.int32)
 		states[T - 1] = np.argmax(delta[T - 1])

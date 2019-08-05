@@ -64,8 +64,7 @@ class HMM_Model:
 		self.inited = True
 		fr.close()
 
-	# 模型训练
-	# 使用的标注数据集， 因此可以使用更简单的监督学习算法，训练函数输入观测序列和状态序列进行训练，
+	# 模型训练: 统计频数
 	# 依次更新各矩阵数据。类中维护的模型参数均为频数而非频率， 这样的设计使得模型可以进行在线训练，
 	# 使得模型随时都可以接受新的训练数据继续训练，不会丢失前次训练的结果。
 	def do_train(self, observes, states):
@@ -144,43 +143,44 @@ class HMM_Model:
 						continue
 					# P(Y0..Yt-1, Zt-1) * P(Zt | Zt-1) * P(Yt | Zt) -> P(Y0..Yt, Zt, Zt-1)   多个Zt-1 -> 每个Zt
 					prob = tab[t - 1][state_prev] * trans_mat[state_prev].get(state, EPS) * emit_mat[state].get(sequence[t], EPS)
-					items.append((prob, state_prev))	# 多个Zt-1 可到 单个Zt的所有概率大小
-				print(items)
-				best = max(items)	# 多个Zt-1 可到 单个Zt，取概率最大的，即最可能的
-				tab[t][state] = best[0]	# t-1时刻（序列） 到 P(Y0..Yt, Zt) 时最大的概率
-				new_path[state] = path[best[1]] + [state]	# 状态前插
+					items.append((prob, state_prev))	# 多个Zt-1 可到 单个Zt的所有概率大小 以及对应的前一步
+				# print(items)
+				best = max(items)	# 多个Zt-1 可到 单个Zt（M个单个），取概率最大的，即最可能的
+				tab[t][state] = best[0]	 # t-1时刻（序列），state时， 到 P(Y0..Yt, Zt) 概率最大
+				new_path[state] = path[best[1]] + [state]	# 到P(Y0..Yt, Zt) 概率最大时的前面路径 加上当前路径
+				print("new_path:", new_path)
 			path = new_path
-		print(tab)
+		# print(tab)
 		# 搜索最优路径
 		prob, state = max([(tab[len(sequence) - 1][state], state) for state in self.states])
-		print("prob", prob)
-		print("state: ", state)
-		print(path)
-		print(path[state])
+		# print("prob", prob)
+		# print("state: ", state)
+		# print(path)
+		# print(path[state])
 		return path[state]
 
 # 对输入的训练语料中的每个词进行标注，因为训练数据是空格隔开的，可以进行转态标注
-# src代表一个词语，词语进行转换得到如['B', 'M', 'M', 'E']
-def get_tags(src):
+# sentence代表一个词语，词语进行转换得到如['B', 'M', 'M', 'E']
+def get_tags(sentence):
 	tags = []
-	if len(src) == 1:
+	if len(sentence) == 1:
 		tags = ['S']
-	elif len(src) == 2:
+	elif len(sentence) == 2:
 		tags = ['B', 'E']
 	else:
-		m_num = len(src) - 2
+		m_num = len(sentence) - 2
 		tags.append('B')
 		tags.extend(['M'] * m_num)
 		tags.append('E')
 	return tags
 
 # 根据预测得到的标注序列将输入的句子分割为词语列表，也就是预测得到的状态序列，解析成一个 list 列表进行返回
-def cut_sent(src, tags):
+def cut_sent(sentence, tags):
 	word_list = []
 	start = -1
 	started = False
 
-	if len(tags) != len(src):
+	if len(tags) != len(sentence):
 		return None
 
 	if tags[-1] not in {'S', 'E'}:
@@ -193,16 +193,16 @@ def cut_sent(src, tags):
 		if tags[i] == 'S':
 			if started:
 				started = False
-				word_list.append(src[start:i])
-			word_list.append(src[i])
+				word_list.append(sentence[start: i])
+			word_list.append(sentence[i])
 		elif tags[i] == 'B':
 			if started:
-				word_list.append(src[start:i])
+				word_list.append(sentence[start: i])
 			start = i
 			started = True
 		elif tags[i] == 'E':
 			started = False
-			word = src[start:i+1]
+			word = sentence[start: i+1]
 			word_list.append(word)
 		elif tags[i] == 'M':
 			continue
@@ -257,6 +257,7 @@ class HMM_FenCi(HMM_Model):
 	def lcut(self, sentence):
 		try:
 			tags = self.do_predict(sentence)
+			print(tags)
 			return cut_sent(sentence, tags)
 		except:
 			return sentence
