@@ -124,13 +124,39 @@ print(model.docvecs.similarity('黄河','长江'))
 
 
 
-import genius
-text = u"""中文自然语言处理是人工智能技术的一个重要分支。"""
-seg_list = genius.seg_text(
-    text,
-    use_combine=True,
-    use_pinyin_segment=True,
-    use_tagging=True,
-    use_break=True
-)
-print(' '.join([word.text for word in seg_list])
+# import genius
+# text = u"""中文自然语言处理是人工智能技术的一个重要分支。"""
+# seg_list = genius.seg_text(
+#     text,
+#     use_combine=True,
+#     use_pinyin_segment=True,
+#     use_tagging=True,
+#     use_break=True
+# )
+# print(' '.join([word.text for word in seg_list])
+
+import re
+
+index = 0
+temp = ""
+pro_words = []
+words = "19980101-02-009-003/m  [国家/n  环保局/n]nt  局长/n  解/nr  振华/nr  庄重/ad  宣布/v  ：/w  在/p  淮河/ns  流域/n  １５６２/m  家/q  污染/vn  企业/n  中/f  ，/w  已/d  有/v  １１３９/m  家/q  完成/v  治理/vn  任务/n  ，/w  ２１５/m  家/q  正在/d  施工/v  停产/v  治理/v  ，/w  １９０/m  家/q  由于/c  其他/r  原因/n  停产/v  、/w  破产/v  、/w  转产/v  ，/w  １８/m  家/q  因/p  治理/v  无望/v  被/p  责令/v  关停/v  。/w  据/p  [中国/ns  环境/n  监测/vn  总站/n]nt  公布/v  的/u  最新/a  数据/n  表明/v  ，/w  淮河/ns  干流/n  和/c  一些/m  支流/n  水质/n  已/d  有/v  明显/a  改善/vn  ，/w  但/c  支流/n  的/u  一些/m  断面/n  污染/vn  仍/d  较/d  严重/a  。/w  "
+words = words.split(" ")
+for word in words:
+# word = words[index] if index < len(words) else u''
+	if u'[' in word:
+		temp += re.sub(pattern=u'/[a-zA-Z]*', repl=u'', string=word.replace(u'[', u''))
+		print(temp)
+	elif u']' in word:
+		w = word.split(u']')
+		temp += re.sub(pattern=u'/[a-zA-Z]*', repl=u'', string=w[0])
+		pro_words.append(temp + u'/' + w[1])
+		temp = u''
+	elif temp:	# [后面跟着的，但又不含]的词
+		temp += re.sub(pattern=u'/[a-zA-Z]*', repl=u'', string=word)
+	elif word:	# 非
+		pro_words.append(word)
+
+print(pro_words)
+print('                     ' is None)
+test = '                     '.strip()
