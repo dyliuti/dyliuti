@@ -1,8 +1,8 @@
 from Data import DataExtract, DataTransform
 import mxnet as mx
-import logging
 
-X_train, X_test, Y_train, Y_test =  DataExtract.load_minist_csv()
+
+X_train, X_test, Y_train, Y_test =  DataExtract.load_minist_csv(pca=False)
 class_num = 10
 Y_train_onehot = DataTransform.y2one_hot(Y_train, class_num=class_num)
 Y_test_onehot  = DataTransform.y2one_hot(Y_test, class_num=class_num)
@@ -32,14 +32,17 @@ train_iter = mx.io.NDArrayIter(data={'data': X_train},
 							   label={'softmax_label': Y_train},
 							   batch_size=batch_size,
 							   shuffle=True)
-# val_iter = mx.io.NDArrayIter(data={'data': X_test},
-# 							 label={'softmax_label': Y_test_onehot},
-# 							 batch_size=batch_size)
+val_iter = mx.io.NDArrayIter(data={'data': X_test},
+							 label={'softmax_label': Y_test},
+							 batch_size=batch_size)
 
 model = mx.mod.Module(symbol=sym, context=mx.gpu())
-model.fit(train_data=train_iter, num_epoch=epochs)
+model.fit(train_data=train_iter,
+		  eval_data=val_iter,
+		  eval_metric=['acc', 'loss'],
+		  optimizer='rmsprop',
+		  num_epoch=epochs)
 
-# logger = logging.getLogger()
-# logger.setLevel(logging.INFO)
+# loss = mx.metric.Loss()
 # acc = mx.metric.Accuracy()
 

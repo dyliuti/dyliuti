@@ -17,13 +17,10 @@ def load_minist_csv(pca=True):
 		print('%s not exist.' % train_file_path)
 
 	train_file = pd.read_csv(train_file_path)
-	train_np = train_file.values.astype(np.float32)		# float 不是 int 是有原因的
-	np.random.shuffle(train_np)
 
-	Y = train_file['label'].values.astype(np.int32)		# seris -> np
+	Y = train_file['label'].values			# seris -> np
 	X_pd = train_file.drop('label', axis=1)
-	X = X_pd.values.astype(np.float32) / 255.0		# Min-Max Scaling -> normalization
-	# X = train_file.values[:, 1:]  # 同上X, 但没标准化
+	X = X_pd.values / 255.0		# Min-Max Scaling -> normalization
 
 	# 训练集中分训练、验证集
 	X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
@@ -35,9 +32,10 @@ def load_minist_csv(pca=True):
 		# test1 = pca.explained_variance_
 		# test2 = pca.explained_variance_ratio_
 		plot_cumulative_variance(pca)
-	# 各自Normalize服从正态分布   梯度图变圆有利于梯度下降
-	X_train = (X_train - np.mean(X_train)) / np.std(X_train)
-	X_test = (X_test - np.mean(X_test)) / np.std(X_test)
+
+		# 各自Normalize服从正态分布   梯度图变圆有利于梯度下降
+		# X_train = (X_train - np.mean(X_train)) / np.std(X_train)
+		# X_test = (X_test - np.mean(X_test)) / np.std(X_test)
 	return X_train, X_test, Y_train, Y_test
 
 def plot_cumulative_variance(pca):

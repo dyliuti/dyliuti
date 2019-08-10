@@ -9,7 +9,7 @@ from sklearn.utils import shuffle
 # tensorflow test error rate 0.025238.
 # Elapsted time for tensorflow rmsprop:  0:08:09.270659
 
-X_train, X_test, Y_train, Y_test =  DataExtract.load_minist_csv()
+X_train, X_test, Y_train, Y_test =  DataExtract.load_minist_csv(pca=False) # pca=False
 class_num = 10
 Y_train_onehot = DataTransform.y2one_hot(Y_train, class_num=class_num)
 Y_test_onehot  = DataTransform.y2one_hot(Y_test, class_num=class_num)
@@ -20,7 +20,7 @@ M = 512
 batch_size = 300
 epochs = 50
 
-# keras
+##### keras #####
 from keras.models import Sequential
 from keras.layers import Dense
 # input: N,D  W1: D,M  W2: M,class_num
@@ -52,7 +52,7 @@ print("Elapsted time for keras rmsprop: ", datetime.now() - t0)
 print(r.history.keys())
 
 
-# tensorflow
+##### tensorflow #####
 import tensorflow as tf
 inputs = tf.placeholder(tf.float32, shape=(None, D), name='inputs')
 outputs = tf.placeholder(tf.float32, shape=(None, class_num), name='outputs')
@@ -100,7 +100,7 @@ print("tensorflow test error rate %f." % error)
 print("Elapsted time for tensorflow rmsprop: ", datetime.now() - t0)
 
 
-# theano
+##### theano #####
 import theano
 import theano.tensor as T
 

@@ -112,3 +112,4 @@ def segment_by_window(words_list=None, window=3):
 		begin = begin + 1
 		end = end + 1
 	return words
+
