@@ -1,7 +1,7 @@
 /.git
 /.idea
 /Data/FacialExpression/*.csv
-/Data/Minist/*.csv
+/Data/Minist/*
 /Data/NLP/*
 param*.txt
 Minist/test.py

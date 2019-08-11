@@ -24,7 +24,7 @@ X_train = X_train.values.reshape(-1,28,28,1)
 Y_train = to_categorical(Y_train, num_classes = 10)
 # 训练集中分训练与验证两部分
 random_seed = 2
-X_train, X_val, Y_train, Y_val = train_test_split(X_train, Y_train, test_size = 0.1, random_state=random_seed)
+X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, test_size = 0.1, random_state=random_seed)
 
 
 ##### 模型建立 #####
@@ -44,7 +44,7 @@ model.add(Flatten())
 model.add(Dense(256, activation = "relu"))
 model.add(Dropout(0.5))
 model.add(Dense(10, activation = "softmax"))
-
+print(model.summary())
 optimizer = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 # sparse_categorical_crossentropy 对应 目标是个index就行，不用转为one-hot
 model.compile(optimizer = optimizer , loss = "categorical_crossentropy", metrics=["accuracy"])
@@ -74,7 +74,7 @@ datagen = ImageDataGenerator(
         vertical_flip=False)  # randomly flip images
 
 history = model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size),
-                              epochs = epochs, validation_data = (X_val, Y_val),
+                              epochs = epochs, validation_data = (X_test, Y_test),
                               verbose = 2, steps_per_epoch=X_train.shape[0] // batch_size
                               , callbacks=[learning_rate_reduction])
 
@@ -83,10 +83,10 @@ datagen.fit(X_train)
 # 查看准确率与损失
 # plot_acc_loss_ke(history)
 
-Y_pred = model.predict(X_val)
+Y_pred = model.predict(X_test)
 # 将预测结果转换为索引
-Y_pred_classes = np.argmax(Y_pred,axis = 1)
-Y_true = np.argmax(Y_val, axis = 1)
+Y_pred_classes = np.argmax(Y_pred, axis = 1)
+Y_true = np.argmax(Y_test, axis = 1)
 # 计算并绘制混淆矩阵
 confusion_mtx = confusion_matrix(Y_true, Y_pred_classes)
 plot_confusion_matrix(confusion_mtx, classes = range(10))

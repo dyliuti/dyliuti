@@ -78,3 +78,34 @@ print(a==a_T)
 sentence_size = 12
 random_word_sequence = np.random.choice(sentence_size, size=sentence_size, replace=False)
 
+##### 将mnist数据集存为图片 #####
+import pandas as pd
+import scipy.misc
+import os
+import PIL.Image as img
+train = pd.read_csv('Data/Minist/train.csv')
+Y_train = train['label']
+X_train = train.drop(labels=['label'], axis=1)
+# 标准化
+X_train = X_train / 255.0
+# 区别mx： N, 1, 28, 28  keras: N, 28, 28, 1
+X_train = X_train.values.reshape(-1, 28,28)
+
+dir_path = 'Data/Minist/train/'
+for i in range(len(X_train)):
+	dir_ = dir_path + str(Y_train[i])
+	if os.path.exists(dir_) is False:
+		os.makedirs(dir_)
+	filename = os.path.join(dir_, str(i) + '.jpg')
+	scipy.misc.toimage(X_train[i], cmin=0.0, cmax=1.0).save(filename)
+	# img_ = img.fromarray(X_train[i])
+	# img_.save(filename)
+
+os.system('python Data/im2rec.py Data/Minist/mnist Data/Minist/train --list --recursive --train-ratio 0.9')
+os.system('python Data/im2rec.py --num-thread 8 Data/Minist/mnist_train.lst Data/Minist/train')
+os.system('python Data/im2rec.py --num-thread 8 Data/Minist/mnist_val.lst Data/Minist/train')
+
+
+import numpy as np
+np.append([[1, 2, 3]], [3, 4, 5])
+
