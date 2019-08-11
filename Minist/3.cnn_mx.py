@@ -5,11 +5,11 @@ from sklearn.model_selection import train_test_split
 from keras.utils.np_utils import to_categorical
 from sklearn.metrics import confusion_matrix
 from Data.DataPlot import plot_acc_loss_ke, plot_confusion_matrix
-import logging
 
-# Epoch[79] Train-accuracy=0.978961
-# Epoch[79] Time cost=2.508
-# Epoch[79] Validation-accuracy=0.989701
+
+# Epoch[99] Train-accuracy=0.988835
+# Epoch[99] Time cost=2.509
+# Epoch[99] Validation-accuracy=0.994257
 
 # logging.basicConfig(format='%(message)s', level=logging.INFO)
 ##### 数据读取 #####
@@ -22,9 +22,7 @@ X_train = X_train / 255.0
 # 区别mx： N, 1, 28, 28  keras: N, 28, 28, 1
 X_train = X_train.values.reshape(-1, 1, 28,28)
 # 目标one-hot编码
-
 Y_train = to_categorical(Y_train, num_classes = 10)
-
 # 训练集中分训练与验证两部分
 random_seed = 2
 X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, test_size = 0.1, random_state=random_seed)
@@ -75,8 +73,8 @@ model = mx.mod.Module(symbol=sym, context=mx.gpu())
 print(X_train.shape)
 # epoch_size = max(int( / batch_size), 1)
 
-lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=[50, 80], factor=0.1)
-optimizer_params = {'learning_rate': lr,
+lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=[70], factor=0.1)
+optimizer_params = {'learning_rate': 0.0005,
 					'lr_scheduler': lr_scheduler}  # 学习率变化策略
 initializer = mx.init.Xavier(rnd_type='gaussian', factor_type="in", magnitude=2)
 model.fit(train_data=train_iter,
@@ -87,13 +85,23 @@ model.fit(train_data=train_iter,
 		  # optimizer_params=optimizer_params, # {'learning_rate':0.0005},
 		  initializer=initializer,
 		  num_epoch=epochs)
-# print(str(model.get_outputs()))
+# print(model.get_outputs())
 
-# test_iter = mx.io.NDArrayIter(data={'data': X_test}, batch_size=batch_size)
-# Y_pred = model.predict(test_iter)
-# # 将预测结果转换为索引
-# Y_pred_classes = np.argmax(Y_pred, axis = 1)
-# Y_true = np.argmax(Y_test, axis = 1)
-# # 计算并绘制混淆矩阵
-# confusion_mtx = confusion_matrix(Y_true, Y_pred_classes)
-# plot_confusion_matrix(confusion_mtx, classes = range(10))
+##### 预测 #####
+val_iter.reset()
+Y_preds = []
+Y_trues = []
+for batch in val_iter:
+	# batch = val_iter.next()
+	data = batch.data[0]
+	Y_true = batch.label[0].asnumpy().astype(dtype=np.int32).tolist()
+	# 预测返回的是NDArray
+	Y_pred = model.predict(data).asnumpy().tolist()
+	# 将预测结果转换为索引
+	Y_true = np.argmax(Y_true, axis=1)
+	Y_pred_classes = np.argmax(Y_pred, axis = 1)
+	Y_preds.extend(Y_pred_classes)		# 用 np.append(a, b)也可以
+	Y_trues.extend(Y_true)
+# 计算并绘制混淆矩阵
+confusion_mtx = confusion_matrix(Y_trues, Y_preds)
+plot_confusion_matrix(confusion_mtx, classes = range(10))

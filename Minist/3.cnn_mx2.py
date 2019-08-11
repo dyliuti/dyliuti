@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from keras.utils.np_utils import to_categorical
 from sklearn.metrics import confusion_matrix
-from Data.DataPlot import plot_acc_loss_ke, plot_confusion_matrix
+from Data.DataPlot import plot_confusion_matrix
 
 '''使用了数据增强'''
 
@@ -52,7 +52,7 @@ sym = mx.sym.SoftmaxOutput(data=fcn2, name='softmax')
 print(sym.list_arguments())
 
 ##### 训练模型 ######
-epochs = 100
+epochs = 200
 batch_size = 86
 data_train_rec = 'Data/Minist/mnist_train.rec'
 data_train_idx = 'Data/Minist/mnist_train.idx'
@@ -68,7 +68,7 @@ train_iter = mx.io.ImageRecordIter(
 	rand_crop=False,
 	data_shape=data_shape,
 	batch_size=batch_size,
-	rand_mirror=True,
+	rand_mirror=False,
 	max_rotate_angle=10,
 	shuffle=True)
 val_iter = mx.io.ImageRecordIter(
@@ -88,7 +88,7 @@ print(train_iter.provide_data)
 print(train_iter.provide_label)
 model = mx.mod.Module(symbol=sym, context=mx.gpu())
 print(X_train.shape)
-lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=[50, 80], factor=0.2)
+lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=[30, 50, 80], factor=0.2)
 optimizer_params = {'learning_rate': 0.005,
 					'lr_scheduler': lr_scheduler}  # 学习率变化策略
 initializer = mx.init.Xavier(rnd_type='gaussian', factor_type="in", magnitude=2)
@@ -102,7 +102,7 @@ model.fit(train_data=train_iter,
 		  num_epoch=epochs)
 
 
-##### 预测展示 #####
+##### 预测 #####
 val_iter.reset()
 Y_preds = []
 Y_trues = []
@@ -114,17 +114,16 @@ for batch in val_iter:
 	Y_pred = model.predict(data).asnumpy().tolist()
 	# 将预测结果转换为索引
 	Y_pred_classes = np.argmax(Y_pred, axis = 1)
-	Y_preds.append(Y_pred_classes)		# 用 np.append(a, b)也可以
-	Y_trues.append(Y_true)
+	Y_preds.extend(Y_pred_classes)		# 用 np.append(a, b)也可以
+	Y_trues.extend(Y_true)
 # 计算并绘制混淆矩阵
-confusion_mtx = confusion_matrix(Y_true, Y_pred_classes)
+confusion_mtx = confusion_matrix(Y_trues, Y_preds)
 plot_confusion_matrix(confusion_mtx, classes = range(10))
 
 ##### 展示图片 #####
-import matplotlib.pyplot as plt
-for i in range(4):
-	plt.subplot(1,4,i+1)
-	img_data = data[i][0].asnumpy().astype(np.uint8) #.transpose(1,2,0)
-	plt.imshow(img_data)
-	plt.imshow(data[i].asnumpy().astype(np.uint8).transpose((1,2,0)))
-plt.show()
+# import matplotlib.pyplot as plt
+# for i in range(4):
+# 	plt.subplot(1,4,i+1)
+# 	img_data = data[i][0].asnumpy().astype(np.uint8) #.transpose(1,2,0)
+# 	plt.imshow(img_data)
+# plt.show()

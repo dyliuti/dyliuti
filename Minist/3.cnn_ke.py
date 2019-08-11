@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from Data.DataPlot import plot_acc_loss_ke, plot_confusion_matrix
 
-from keras.utils.np_utils import to_categorical # convert to one-hot-encoding
+from keras.utils.np_utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D
 from keras.optimizers import RMSprop
