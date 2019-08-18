@@ -35,6 +35,7 @@ with detection_graph.as_default():
 label_map = label_map_util.load_labelmap(labels_path)
 categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=num_classes,
                                                             use_display_name=True)
+# 1：person 3: car
 category_index = label_map_util.create_category_index(categories)
 print("categories:")
 print(categories)
