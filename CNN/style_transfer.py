@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from CNN.Common.Model import VGG16_AvgPool, style_loss, minimize
 
+# 需要把vgg16模型参数 vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5 放在 C:\Users\用户名\.keras\models 文件夹中
 def load_img(path, shape=None):
 	img = image.load_img(path, target_size=shape)
 	# 将图片转换为array，用于vgg输入
@@ -24,8 +25,8 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 img_shape = (225, 300)
-content_img = load_img('CNN/content/sydney.jpg', shape=img_shape)
-style_img = load_img('CNN/styles/starrynight.jpg', shape=img_shape)
+content_img = load_img('Data/CNN/content/sydney.jpg', shape=img_shape)
+style_img = load_img('Data/CNN/styles/starrynight.jpg', shape=img_shape)
 batch_shape = content_img.shape
 shape = batch_shape[1:]		# 三维 hwc
 

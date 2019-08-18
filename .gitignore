@@ -3,5 +3,6 @@
 /Data/FacialExpression/*.csv
 /Data/Minist/*
 /Data/NLP/*
+/Data/CNN/*
 param*.txt
 Minist/test.py
