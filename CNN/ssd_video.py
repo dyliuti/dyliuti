@@ -1,6 +1,14 @@
+import sys, os
+from datetime import datetime
 import numpy as np
 import tensorflow as tf
-import sys, os
+import imageio
+
+
+input_video_name = 'Data\CNN\ssd\mobile'
+# input_video_name = 'jiedao'
+output_video_fps = 10
+
 
 research_path = 'Data/CNN/models/research'
 models_path = 'Data/CNN/models/research/object_detection'
@@ -11,8 +19,6 @@ sys.path.append(models_path)
 
 from utils import label_map_util
 from utils import visualization_utils as vis_util
-from PIL import Image
-import matplotlib.pyplot as plt
 
 model_name = 'ssd_mobilenet_v1_coco_2018_01_28'
 ckpt_path = '%s/%s/frozen_inference_graph.pb' % (models_path, model_name)
@@ -45,7 +51,6 @@ def load_image_into_numpy_array(image):
 	(im_width, im_height) = image.size
 	return np.array(image.getdata()).reshape((im_height, im_width, 3)).astype(np.uint8)
 
-# 目标检测
 with detection_graph.as_default():
 	with tf.Session(graph=detection_graph) as sess:
 		# 定义输入输出 Tensors （从 detection_graph 中取出）
@@ -58,10 +63,18 @@ with detection_graph.as_default():
 		detection_classes = detection_graph.get_tensor_by_name('detection_classes: 0')
 		num_detections = detection_graph.get_tensor_by_name('num_detections: 0')
 
-		i = 0
-		for image_path in image_paths:
-			image = Image.open(image_path)
-			image_np = load_image_into_numpy_array(image)
+		video_reader = imageio.get_reader('%s.mp4' % input_video_name)
+		video_writer = imageio.get_writer('%s_ssd.mp4' % input_video_name, fps=output_video_fps)
+
+		# 处理每一帧
+		t0 = datetime.now()
+		n_frames = 0
+		for frame in video_reader:
+			# rename for convenience
+			image_np = frame
+			n_frames += 1
+
+			# 扩展维度，因为模型要求输入图像shape: [1, None, None, 3]
 			image_np_expanded = np.expand_dims(image_np, axis=0)
 
 			# 实际求得的anchor等
@@ -69,19 +82,21 @@ with detection_graph.as_default():
 				[detection_boxes, detection_scores, detection_classes, num_detections],
 				feed_dict={image_tensor: image_np_expanded})
 
-			# 画出框
+			# 画出预测框
 			vis_util.visualize_boxes_and_labels_on_image_array(
 				image_np,
-				np.squeeze(boxes),  # 删除单维度  即删除shape中为1的
+				np.squeeze(boxes),
 				np.squeeze(classes).astype(np.int32),
 				np.squeeze(scores),
 				category_index,
-				# keypoints="1",
 				use_normalized_coordinates=True,
 				line_thickness=8)
 
-			plt.figure(figsize=image_size)
-			plt.imshow(image_np)
-			plt.imsave("Data/CNN/ssd/image_decttion_{}".format(i), image_np)
-			i += 1
+			# 将帧写入video中，而不是显示帧了
+			video_writer.append_data(image_np)
 
+		fps = n_frames / (datetime.now() - t0).total_seconds()
+		print("已处理的帧: %s, Speed: %s fps" % (n_frames, fps))
+
+		# 释放资源
+		video_writer.close()
