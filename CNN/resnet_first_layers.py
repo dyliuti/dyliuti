@@ -18,8 +18,8 @@ class MaxPoolLayer:
 	def __init__(self, dim):
 		self.dim = dim
 
-	def forward(self, Y):
-		return tf.nn.max_pool(X, ksize=[1, self.dim, self.dim, 1], strides=[1, 2, 2, 1], padding='VALID')
+	def forward(self, X):
+		return tf.nn.max_pool(X, ksize=[1, self.dim, self.dim, 1], strides=[1, 2, 2, 1], padding='SAME')
 
 	def get_params(self):
 		return []
@@ -39,9 +39,9 @@ class PartialResNet:
 		self.output = self.forward(self.input_)
 
 	def copyFromKerasLayers(self, layers):
-		self.layers[0].copyFromKerasLayers(layers[1])
-		self.layers[1].copyFromKerasLayers(layers[2])
-		self.layers[4].copyFromKerasLayers(layers[5:])
+		self.layers[0].copyFromKerasLayers(layers[2])
+		self.layers[1].copyFromKerasLayers(layers[3])
+		self.layers[4].copyFromKerasLayers(layers[7:])
 
 	def forward(self, X):
 		for layer in self.layers:
@@ -62,6 +62,7 @@ class PartialResNet:
 		for layer in self.layers:
 			params += layer.get_params()
 
+# 对比第一个conv_block后的输出
 if __name__ == '__main__':
 	resnet = ResNet50(weights='imagenet')
 
@@ -95,12 +96,16 @@ if __name__ == '__main__':
 	print("first_output.shape:", first_output.shape)
 
 	# 从 Keras model 中拷贝参数
-	my_partial_resnet.copyFromKerasLayers(partial_model.layers)
+	my_partial_resnet.copyFromKerasLayers(resnet.layers)
+	# my_partial_resnet.copyFromKerasLayers(partial_model.layers)
 
 	# 比对2个 model
 	output = my_partial_resnet.predict(X)
+	print(first_output.sum())
+	print(output.sum())
+	print(keras_output.sum())
 	diff = np.abs(output - keras_output).sum()
 	if diff < 1e-10:
-		print("Everything's great!")
+		print("OK的!")
 	else:
 		print("diff = %s" % diff)

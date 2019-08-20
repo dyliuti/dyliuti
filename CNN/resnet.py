@@ -95,35 +95,35 @@ class TFResNet:
 
 	def copyFromKerasLayers(self, layers):
 		# conv
-		self.layers[0].copyFromKerasLayers(layers[1])
+		self.layers[0].copyFromKerasLayers(layers[2])
 		# bn
-		self.layers[1].copyFromKerasLayers(layers[2])
+		self.layers[1].copyFromKerasLayers(layers[3])
 		# cb
-		self.layers[4].copyFromKerasLayers(layers[5:17]) # size=12
+		self.layers[4].copyFromKerasLayers(layers[7:17]) # size=12
 		# ib x 2
-		self.layers[5].copyFromKerasLayers(layers[17:27]) # size=10
-		self.layers[6].copyFromKerasLayers(layers[27:37])
+		self.layers[5].copyFromKerasLayers(layers[19:27]) # size=10
+		self.layers[6].copyFromKerasLayers(layers[29:37])
 		# cb
-		self.layers[7].copyFromKerasLayers(layers[37:49])
+		self.layers[7].copyFromKerasLayers(layers[39:49])
 		# ib x 3
-		self.layers[8].copyFromKerasLayers(layers[49:59])
-		self.layers[9].copyFromKerasLayers(layers[59:69])
-		self.layers[10].copyFromKerasLayers(layers[69:79])
+		self.layers[8].copyFromKerasLayers(layers[51:59])
+		self.layers[9].copyFromKerasLayers(layers[61:69])
+		self.layers[10].copyFromKerasLayers(layers[71:79])
 		# cb
-		self.layers[11].copyFromKerasLayers(layers[79:91])
+		self.layers[11].copyFromKerasLayers(layers[81:91])
 		# ib x 5
-		self.layers[12].copyFromKerasLayers(layers[91:101])
-		self.layers[13].copyFromKerasLayers(layers[101:111])
-		self.layers[14].copyFromKerasLayers(layers[111:121])
-		self.layers[15].copyFromKerasLayers(layers[121:131])
-		self.layers[16].copyFromKerasLayers(layers[131:141])
+		self.layers[12].copyFromKerasLayers(layers[93:101])
+		self.layers[13].copyFromKerasLayers(layers[103:111])
+		self.layers[14].copyFromKerasLayers(layers[113:121])
+		self.layers[15].copyFromKerasLayers(layers[123:131])
+		self.layers[16].copyFromKerasLayers(layers[133:141])
 		# cb
-		self.layers[17].copyFromKerasLayers(layers[141:153])
+		self.layers[17].copyFromKerasLayers(layers[143:153])
 		# ib x 2
-		self.layers[18].copyFromKerasLayers(layers[153:163])
-		self.layers[19].copyFromKerasLayers(layers[163:173])
+		self.layers[18].copyFromKerasLayers(layers[155:163])
+		self.layers[19].copyFromKerasLayers(layers[165:173])
 		# dense
-		self.layers[22].copyFromKerasLayers(layers[175])
+		self.layers[22].copyFromKerasLayers(layers[176])
 
 
 	def forward(self, X):
@@ -161,7 +161,7 @@ if __name__ == '__main__':
 	# 可以通过查看resnet来确定正确的层
 	partial_model = Model(
 		inputs=resnet.input,
-		outputs=resnet.layers[175].output
+		outputs=resnet.layers[176].output
 	)
 
 	print(partial_model.summary())
@@ -189,12 +189,16 @@ if __name__ == '__main__':
 	print("first_output.shape:", first_output.shape)
 
 	# 从 Keras model 中拷贝参数
-	my_partial_resnet.copyFromKerasLayers(partial_model.layers)
+	my_partial_resnet.copyFromKerasLayers(resnet.layers)
+	# my_partial_resnet.copyFromKerasLayers(partial_model.layers)
 
 	# 比对2个 model
 	output = my_partial_resnet.predict(X)
+	print(first_output.sum())
+	print(output.sum())
+	print(keras_output.sum())
 	diff = np.abs(output - keras_output).sum()
 	if diff < 1e-10:
-		print("Everything's great!")
+		print("OK的!")
 	else:
 		print("diff = %s" % diff)
