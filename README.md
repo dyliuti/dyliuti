@@ -1,4 +1,6 @@
-“经验总结”总是在“感性认识”之后。
+“纸上得来终觉浅，绝知此事要躬行。”  —— 陆游
+
+"Practice，practice，practice makes pefect" —— dyliuti
 
 **文件结构：**
 
