@@ -111,7 +111,7 @@ decoder_lstm = LSTM(units=LATENT_DIM,
 )
 
 # 将编码器lstm最后的输出与记忆单元作为解码器的初始状态输入
-# N_de x T_de x M_de
+# N_de x T_de x H_en
 decoder_outputs, _, _ = decoder_lstm(
 	inputs=decoder_inputs_x,
 	initial_state=encoder_states
@@ -121,9 +121,9 @@ decoder_outputs, _, _ = decoder_lstm(
 #   initial_state=encoder_outputs
 # )
 # 预测的翻译词的概率，   这里不需要转置，Dense与Embdding一样，keras封装的好
-# M_de x D_de
+# H_en x D_de
 decoder_dense = Dense(num_words_translation, activation='softmax')
-# N_de x T_de x M_de	M_de x D_de  ->  N_de x T_de x D_de (logits)
+# N_de x T_de x H_en	H_en x D_de  ->  N_de x T_de x D_de (logits)
 decoder_outputs = decoder_dense(decoder_outputs)
 
 ######## 解码器-编码器 共建翻译模型 #########

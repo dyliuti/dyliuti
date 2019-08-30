@@ -78,10 +78,10 @@ initial_c = Input(shape=(LATENT_DIM, ))
 # NxT -> NxTxD
 x = embedding_layer(input_)
 lstm = LSTM(LATENT_DIM, return_sequences=True, return_state=True)
-# NxTxD -> NxTxM
+# NxTxD -> NxTxH
 x, _, _ = lstm(x, initial_state=[initial_h, initial_c])
 dense = Dense(words_num, activation='softmax')
-# NxM -> N, word_num
+# NxH -> N, word_num
 output = dense(x)
 
 model = Model([input_, initial_h, initial_c], output)
@@ -119,7 +119,7 @@ plt.show()
 input2 = Input(shape=(1, ))
 # 1x1xD
 x = embedding_layer(input2)
-# 1x1xM		M: Laten_dim   h: 1xM c: 1xM
+# 1x1xH		M: Laten_dim   h: 1xH c: 1xH
 x, h, c = lstm(x, initial_state=[initial_h, initial_c])
 # 1, 1, word_num
 output2 = dense(x)
@@ -138,7 +138,7 @@ eos_index = word2index['<eos>']
 output_sentence = []
 
 for _ in range(max_sequence_length):
-	# 1,1,word_num   1,M   1,M
+	# 1,1,word_num   1,H   1,H
 	o, h, c = sampling_model.predict([np_input, h, c])
 	# 3000,
 	probs = o[0, 0]
