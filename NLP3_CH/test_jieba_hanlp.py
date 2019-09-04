@@ -4,7 +4,8 @@ import jieba
 # https://github.com/hankcs/pyhanlp
 
 ##################### 分词测试 #####################
-content = "现如今，机器学习和深度学习带动人工智能飞速的发展，并在图片处理、语音识别领域取得巨大成功。"
+# content = "现如今，机器学习和深度学习带动人工智能飞速的发展，并在图片处理、语音识别领域取得巨大成功。"
+content = "中国共产党是中国工人阶级的先锋队，同时是中国人民和中华民族的先锋队，"
 # 精确分词：精确模式试图将句子最精确地切开，精确分词也是默认分词。
 segs_1_gen = jieba.cut(content, cut_all=False)
 segs_1_list = jieba.lcut(content, cut_all=False)

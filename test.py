@@ -1,4 +1,36 @@
 import mxnet.ndarray as nd
+import jieba
+file_path = "Data/NLP2/党章/中国共产党党章.txt"
+en_path = "Data/NLP2/党章/中国共产党党章En.txt"
+ch_path = "Data/NLP2/党章/中国共产党党章Ch.txt"
+ch_path_fenci = "Data/NLP2/党章/中国共产党党章Ch_FenCi.txt"
+n = 0
+en_lines = []
+ch_lines = []
+ch_lines_fenci = []
+with open(file_path, encoding='utf-8') as f:
+    data = f.readlines()
+    for n, line in enumerate(data):
+        if n % 2 == 1:
+            en_lines.append(line)
+        else:
+            ch_lines.append(line)
+            ch_lines_fenci.append(" ".join(jieba.lcut(line)))
+
+with open(en_path, mode='w', encoding='utf-8') as en_f:
+    en_f.writelines(en_lines)
+with open(ch_path, mode="w", encoding='utf-8') as ch_f:
+    ch_f.writelines(ch_lines)
+with open(ch_path_fenci, mode="w", encoding='utf-8') as ch_f:
+    ch_f.writelines(ch_lines_fenci)
+print(ch_lines_fenci[0].replace("\n", "").split())
+print(len(ch_lines_fenci[0].replace("\n", "")))
+
+import jieba
+content = ch_lines[5].replace("\n", "")
+segs_1_list = jieba.lcut(content, cut_all=False)
+print(segs_1_list)
+
 
 vocab_size = 5
 res = nd.one_hot(nd.array([0, 2]), vocab_size)

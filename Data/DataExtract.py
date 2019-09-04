@@ -229,7 +229,7 @@ def load_robert_frost():
 def load_robert_frost_soseos():
 	input_sentences = []
 	output_sentences = []
-	for line in open('Data/NLP/robert_frost.txt', 'r', encoding='utf-8'):
+	for line in open('Data/NLP2/robert_frost.txt', 'r', encoding='utf-8'):
 		line = line.strip()
 		if line:
 			# 前后空格别忘了
@@ -449,8 +449,8 @@ def load_glove6B(dimension):
 			word2vec[word] = vec
 	return word2vec
 
-def load_translation(file_name='jpn.txt', sample_num=float('inf')):
-	file = 'Data/NLP/translation/' + file_name
+def load_translation(file_name='jpn.txt', file_path = 'Data/NLP2/translation', sample_num=float('inf')):
+	file = os.path.join(file_path, file_name)
 	input_texts = []
 	translation_inputs = []
 	translation_outputs = []
@@ -474,6 +474,30 @@ def load_translation(file_name='jpn.txt', sample_num=float('inf')):
 
 	return input_texts, translation_inputs, translation_outputs
 
+def load_text_patricipialed(file_name, file_path, filter_char="\n", sample_num=float('inf'), encoding='utf-8'):
+	file = os.path.join(file_path, file_name)
+	input_texts = []
+	num = 0
+	for line in open(file, encoding=encoding):
+		num += 1
+		if num > sample_num:
+			break
+		input_texts.append(line.replace(filter_char, "").split())
+	return input_texts
+
+def load_translation_patricipialed(file_name, file_path, filter_char="\n", sample_num=float('inf'), encoding='utf-8'):
+	file = os.path.join(file_path, file_name)
+	translation_inputs = []
+	translation_outputs = []
+	num = 0
+	for line in open(file, encoding=encoding):
+		num += 1
+		if num > sample_num:
+			break
+		translation_inputs.append(['<sos>'] + line.replace(filter_char, "").split())
+		translation_outputs.append(line.replace(filter_char, "").split() + ['<eos>'])
+	return translation_inputs, translation_outputs
+
 def tokenize(sent):
 	# tokenize('Bob dropped the apple. Where is the apple?')
 	# ['Bob', 'dropped', 'the', 'apple', '.', 'Where', 'is', 'the', 'apple', '?']
@@ -491,7 +515,7 @@ challenges = {
 # 一个故事中有多个提问
 # 返回：data每项都是对应着一个提问，以及提问前的故事（不包括提问，但提问占序号）
 def load_bAbI_challange_data(challenge_type='single_supporting_fact_10k', data_type='train'):
-	path = 'Data/NLP/Memory/tasks.tar.gz'
+	path = 'Data/NLP2/Memory/tasks.tar.gz'
 	tar = tarfile.open(path)
 	challenge = challenges[challenge_type]
 	f = tar.extractfile(challenge.format(data_type))

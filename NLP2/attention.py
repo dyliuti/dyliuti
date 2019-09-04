@@ -20,7 +20,7 @@ BATCH_SIZE = 64  # Batch size for training.
 EPOCHS = 100
 LATENT_DIM = 256
 LATENT_DIH_deCODER = 256 # 较seq2seq多出的参数
-NUM_SAMPLES = 10000  # 训练样本句子数
+NUM_SAMPLES = 1000  # 训练样本句子数
 MAX_SEQUENCE_LENGTH = 100
 MAX_NUM_WORDS = 20000
 EMBEDDING_DIM = 100
@@ -35,11 +35,16 @@ input_texts, translation_inputs, translation_outputs = load_translation(sample_n
 NUM_SAMPLES = min(NUM_SAMPLES, len(input_texts))
 
 # 将输入tokennize
+# filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n',
+# lower=True,
+# split=' ',
 tokenizer_inputs = Tokenizer(num_words=MAX_NUM_WORDS)
 tokenizer_inputs.fit_on_texts(input_texts)
 input_sequences = tokenizer_inputs.texts_to_sequences(input_texts)
+print(input_sequences[768])
 # 获得词与索引的映射
 word2index_inputs = tokenizer_inputs.word_index
+print([tokenizer_inputs.index_word[index] for index in input_sequences[768]])
 # 获取输入句子中的最大序列长度
 max_len_input = max(len(s) for s in input_sequences)
 
@@ -48,6 +53,7 @@ tokenizer_outputs = Tokenizer(num_words=MAX_NUM_WORDS, filters='')
 tokenizer_outputs.fit_on_texts(translation_inputs + translation_outputs)
 translation_sequences_outputs = tokenizer_outputs.texts_to_sequences(translation_outputs)
 translation_sequences_inputs = tokenizer_outputs.texts_to_sequences(translation_inputs)
+print([tokenizer_outputs.index_word[index] for index in translation_sequences_outputs[768]])
 # 获得词与索引的映射
 word2index_outputs = tokenizer_outputs.word_index
 # 翻译句子的独立词数
