@@ -50,3 +50,21 @@ import numpy as np
 b = [nd.array([0, 1, 2, 3, 4]), nd.array([5, 6, 7, 8, 9])]
 outputs = nd.concat(*b, dim=0)
 
+import re
+
+phone = "2004,959!559 # 这是一个国外电话号码"
+
+phone = phone.translate(str.maketrans({",":" ,", "!":" !", "?": " ?", ".": " ."}))
+test = "add,dsad\t你好！我是。"
+a, b = test.split('\t')
+a = re.sub(",!?.", " ",  a)
+b = re.sub("，！？。", "",  b)
+a = a.translate(str.maketrans(",!?.", ""))
+b = b.translate(str.maketrans("，！？。", "    "))
+# 删除字符串中的 Python注释
+num = re.sub(r'#.*$', "", phone)
+print("电话号码是: ", num)
+
+# 删除非数字(-)的字符串
+num = re.sub(r',!', "", phone)
+print("电话号码是 : ", num)

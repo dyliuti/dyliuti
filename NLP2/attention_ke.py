@@ -82,21 +82,16 @@ for word, word_index in word2index_inputs.items():
 			embedding[word_index] = word_vector
 
 # 序列化的输入中获得每个序列的词向量  即加个维度 D
-# embedding_layer = Embedding(
-# 	input_dim=num_words,	# 独立词个数，也即是embedding中词vector的个数
-# 	output_dim=EMBEDDING_DIM,
-# 	weights=[embedding],	# 初始化参数
-# 	# 后面连接 `Flatten` then `Dense` 必要的参数，没这参数，`Flatten` then `Dense`的shape就无法计算
-# 	# 即要求输入序列长度是固定的
-# 	input_length=max_len_input,
-# 	trainable=True
-# )
-# embedding_layer.set_weights(embedding)
 embedding_layer = Embedding(
 	input_dim=num_words,	# 独立词个数，也即是embedding中词vector的个数
 	output_dim=EMBEDDING_DIM,
+	weights=[embedding],	# 初始化参数
+	# 后面连接 `Flatten` then `Dense` 必要的参数，没这参数，`Flatten` then `Dense`的shape就无法计算
+	# 即要求输入序列长度是固定的
 	input_length=max_len_input,
+	trainable=True
 )
+# embedding_layer.set_weights(embedding)
 
 # N_de x T_de x D_de
 decoder_outputs_one_hot = np.zeros(shape=(len(input_texts), max_len_translation, num_words_translation), dtype='float32')

@@ -1,4 +1,4 @@
-from Data.DataExtract import load_translation, load_glove6B
+from Data.DataExtract import load_translation_fenci, load_glove6B
 from keras.models import Model
 from keras.layers import Input, LSTM, GRU, Dense, Embedding, \
 	Bidirectional, RepeatVector, Concatenate, Dot, Lambda
@@ -29,7 +29,14 @@ EMBEDDING_DIM = 100
 word2vec = load_glove6B(EMBEDDING_DIM)
 # 翻译的输入句子， 翻译后的输出句子前后分别加标志成为inputs与outputs
 # translation_inputs 与 translation_outputs 分别作为 Teacher Forcing 的输入与输出
-input_texts, translation_inputs, translation_outputs = load_translation(sample_num=NUM_SAMPLES)
+file_name="cmn.txt"
+file_path="Data/NLP2/translation"
+input_texts, translation_inputs, translation_outputs = load_translation_fenci(
+	file_name=file_name,
+	file_path=file_path,
+	reserve_punctuation=False,
+	sample_num=NUM_SAMPLES
+)
 # input_texts, translation_inputs, translation_outputs = load_translation(file_name='twitter_chat.txt', sample_num=NUM_SAMPLES)
 # 对于jpn.txt 总共44917行 设置10000可以。但对于twitter_chat.txt，总共就8490行，设置10000会导致x,y样本不一样，兼容下
 NUM_SAMPLES = min(NUM_SAMPLES, len(input_texts))
@@ -62,7 +69,7 @@ num_words_translation = len(word2index_outputs) + 1
 max_len_translation = max(len(s) for s in translation_sequences_inputs)
 
 # 定长序列 N_en x T_en   N_de x T_de
-encoder_inputs = pad_sequences(input_sequences, maxlen=max_len_input)
+encoder_inputs = pad_sequences(input_sequences, maxlen=max_len_input, padding='post')
 decoder_inputs = pad_sequences(translation_sequences_inputs, maxlen=max_len_translation, padding='post')
 decoder_outputs = pad_sequences(translation_sequences_outputs, maxlen=max_len_translation, padding='post')
 
@@ -83,7 +90,7 @@ embedding_layer = Embedding(
 	weights=[embedding],	# 初始化参数
 	# 后面连接 `Flatten` then `Dense` 必要的参数，没这参数，`Flatten` then `Dense`的shape就无法计算
 	# 即要求输入序列长度是固定的
-	input_length=max_len_input,		
+	input_length=max_len_input,
 	# trainable=True
 )
 # embedding_layer.set_weights(embedding)
@@ -154,7 +161,7 @@ def one_step_attention(h, st_1):
 	# 每个词都有h，h代表了词的隐形特征
 	# alphas 的每一列(T个坐标,每个值对句子中相应词的权重)
 	context = attn_dot([alphas, h])
-	return context
+	return context, alphas
 
 
 ######## Attention 后的解码器 #########
@@ -186,7 +193,7 @@ outputs_ = []
 # 1xTxD 每次处理 Nx1xD
 for t in range(max_len_translation):  # Ty次
 	# 通过attention获取context : 1x1x2H_en
-	context = one_step_attention(encoder_outputs, s)
+	context, _ = one_step_attention(encoder_outputs, s)
 	# 获得一个输入句子
 	selector = Lambda(lambda x: x[:, t: t+1])
 	# NxTxD -> Nx1xD
@@ -254,7 +261,7 @@ encoder_model = Model(inputs=encoder_inputs_placehoder,
 # 编码器输出输入经过Bidirection后的状态
 encoder_outputs_as_input = Input(shape=(max_len_input, LATENT_DIM * 2,))
 # Attention利用编码器全部输出与st-1生成context
-context = one_step_attention(encoder_outputs_as_input, initial_s)
+context, alphas = one_step_attention(encoder_outputs_as_input, initial_s)
 # yt-1
 decoder_inputs_single = Input(shape=(1, ))
 decoder_inputs_single_x = decoder_embedding(decoder_inputs_single)
@@ -270,7 +277,7 @@ decoder_model = Model(inputs=[decoder_inputs_single,
 							  encoder_outputs_as_input,
 							  initial_s,
 							  initial_c],
-					  outputs=[decoder_outputs, s, c]
+					  outputs=[decoder_outputs, s, c, alphas, decoder_inputs_single_x]
 )
 
 # 为了获取真实的词
@@ -296,8 +303,10 @@ def get_translation(input_seq):
 
 	# 产生翻译,
 	output_sentence = []
+	params = []
+	embeddings = []
 	for _ in range(max_len_translation):
-		output_tokens, s, c = decoder_model.predict(
+		output_tokens, s, c, alpha, embedding_token = decoder_model.predict(
 			x=[translation_input_word, enc_output, s, c]
 		)
 
@@ -310,13 +319,14 @@ def get_translation(input_seq):
 		if index > 0:
 			word = index2word_trans[index]
 			output_sentence.append(word)
-
+			params.append(alpha)
+			embeddings.append(embedding_token)
 		# 更新解码器的输入
 		translation_input_word[0, 0] = index
 		# 更新解码器输入状态
 		# states_value = [h, c]
 
-	return output_sentence
+	return output_sentence, params, embeddings
 
 while True:
 	# 随机选择一个句子，并对其进行翻译
@@ -324,9 +334,20 @@ while True:
 	input_seq = encoder_inputs[i: i + 1]  # 区别于encoder_inputs[i] shape:(5,)  前者shape是(1, 5)
 	input_sentence = [index2word_eng[word_index] for word_index in input_seq[0] if word_index > 0]
 	print("输入句子：", input_sentence)
-	output_sentence = get_translation(input_seq)
+	output_sentence, params, embeddings = get_translation(input_seq)
+	params_ = np.array(params).squeeze()
 	print("翻译得到句子：", output_sentence)
-
+	print(params_)
+	print(embeddings)
 	ans = input("Continue? [Y/n]")
 	if ans and ans.lower().startswith('n'):
 		break
+
+# params_ = np.array(params).squeeze()
+# print(params[0])
+# print(params[1])
+# print(params[])
+# 英文单词数：3518  中单单词数 6766
+# input_sentence = ['now', 'i', 'need', 'you', 'to', 'leave']
+# output_sentence = ['現在', '我', '需要', '你', '離開']
+# output_indexs = [word2index_outputs[word] for word in output_sentence]

@@ -8,7 +8,7 @@ from nltk.corpus import brown
 from nltk import pos_tag, word_tokenize
 import string
 from glob import glob
-import tarfile, re
+import tarfile, re, jieba
 
 # 返回标准化了的训练集与测试集
 def load_minist_csv(pca=True):
@@ -471,6 +471,34 @@ def load_translation(file_name='jpn.txt', file_path = 'Data/NLP2/translation', s
 		input_texts.append(input_text)
 		translation_inputs.append(translation_input)
 		translation_outputs.append(translation_output)
+
+	return input_texts, translation_inputs, translation_outputs
+
+def load_translation_fenci(file_name, file_path, reserve_punctuation=True, sample_num=float('inf'), encoding='utf-8'):
+	file = os.path.join(file_path, file_name)
+	input_texts = []
+	translation_inputs = []
+	translation_outputs = []
+	num = 0
+	for line in open(file, encoding=encoding):
+		num += 1
+		if num > sample_num:
+			break
+
+		if '\t' not in line:
+			continue
+
+		# 分离输入句子和输出的翻译句子
+		input_text, translation = line.strip().split('\t')
+		# 保留停用词
+		if reserve_punctuation:
+			input_text = input_text.translate(str.maketrans({",": " ,", "!": " !", "?": " ?", ".": " ."}))
+		else:
+			input_text = input_text.translate(str.maketrans(",!?.", "    ")).strip()
+			translation = translation.translate(str.maketrans("，！？。", "    ")).strip()
+		input_texts.append(input_text.lower().split())
+		translation_inputs.append(['<sos>'] + jieba.lcut(translation.replace("\n", "")))
+		translation_outputs.append(jieba.lcut(translation.replace("\n", "")) + ['<eos>'])
 
 	return input_texts, translation_inputs, translation_outputs
 
