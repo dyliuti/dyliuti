@@ -6,6 +6,30 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import keras.backend as K
 
+# 1000个词，epochs=100 中英文去停顿标点，中文短语形式 loss: 0.0193 - acc: 0.9886 - val_loss: 3.0284 - val_acc: 0.6933
+# 1000个词，epochs=100 中英文去停顿标点，中文词形式   loss: 0.0185 - acc: 0.9889 - val_loss: 3.2927 - val_acc: 0.6482
+# 这里还可以把英文单词再进行拆分的，形成局部单词
+
+# 第二个做attention示例不错， ["i'm", 'thrilled'] ['我', '激', '動', '不', '已']
+# 不已的权重都很平均，这是不是意味这些词可以作为去停用词。
+# [[0.99383545 0.00409239 0.00107628 0.00099594]
+#  [0.50675154 0.27643755 0.13042809 0.08638281]
+#  [0.45728102 0.3588085  0.09860806 0.08530243]
+#  [0.27644026 0.26376322 0.24046768 0.21932882]
+#  [0.25044706 0.25030664 0.24986543 0.24938092]]
+
+# 输入句子： ['he', 'is', 'tall']
+# 翻译得到句子： ['他', '高']
+# [[9.9938273e-01 4.6381936e-04 9.6236072e-05 5.7242461e-05]
+#  [5.1293737e-01 3.5182342e-01 7.2982356e-02 6.2256809e-02]]
+
+# 输入句子： ["i'm", 'curious']
+# 翻译得到句子： ['我', '很', '好', '奇']
+# [[9.9718082e-01 1.4917660e-03 7.3657365e-04 5.9088302e-04]
+#  [9.3813312e-01 4.6988510e-02 7.7440026e-03 7.1343984e-03]
+#  [4.9452606e-01 3.0531138e-01 1.0537410e-01 9.4788492e-02]
+#  [3.4199092e-01 3.0511385e-01 1.8240550e-01 1.7048974e-01]]
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -35,6 +59,7 @@ input_texts, translation_inputs, translation_outputs = load_translation_fenci(
 	file_name=file_name,
 	file_path=file_path,
 	reserve_punctuation=False,
+	word=True,
 	sample_num=NUM_SAMPLES
 )
 # input_texts, translation_inputs, translation_outputs = load_translation(file_name='twitter_chat.txt', sample_num=NUM_SAMPLES)

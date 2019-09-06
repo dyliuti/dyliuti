@@ -474,7 +474,7 @@ def load_translation(file_name='jpn.txt', file_path = 'Data/NLP2/translation', s
 
 	return input_texts, translation_inputs, translation_outputs
 
-def load_translation_fenci(file_name, file_path, reserve_punctuation=True, sample_num=float('inf'), encoding='utf-8'):
+def load_translation_fenci(file_name, file_path, reserve_punctuation=True, word=True, sample_num=float('inf'), encoding='utf-8'):
 	file = os.path.join(file_path, file_name)
 	input_texts = []
 	translation_inputs = []
@@ -497,6 +497,10 @@ def load_translation_fenci(file_name, file_path, reserve_punctuation=True, sampl
 			input_text = input_text.translate(str.maketrans(",!?.", "    ")).strip()
 			translation = translation.translate(str.maketrans("，！？。", "    ")).strip()
 		input_texts.append(input_text.lower().split())
+		# if word:
+		# translation_inputs.append(['<sos>'] + [word for word in translation])
+		# translation_outputs.append([word for word in translation] + ['<eos>'])
+		# else: # 使用短语
 		translation_inputs.append(['<sos>'] + jieba.lcut(translation.replace("\n", "")))
 		translation_outputs.append(jieba.lcut(translation.replace("\n", "")) + ['<eos>'])
 
