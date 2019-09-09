@@ -6,3 +6,12 @@
 /Data/CNN/*
 param*.txt
 Minist/test.py
+/UI/*
+UI
+/QtUI/*
+QtUI
+test.py
+main.py
+theme_blue_rc.py
+./logs/*
+logs

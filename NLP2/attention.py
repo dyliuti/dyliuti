@@ -5,6 +5,7 @@ from keras.layers import Input, LSTM, GRU, Dense, Embedding, \
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import keras.backend as K
+import keras
 
 # 1000个词，epochs=100 中英文去停顿标点，中文短语形式 loss: 0.0193 - acc: 0.9886 - val_loss: 3.0284 - val_acc: 0.6933
 # 1000个词，epochs=100 中英文去停顿标点，中文词形式   loss: 0.0185 - acc: 0.9889 - val_loss: 3.2927 - val_acc: 0.6482
@@ -43,7 +44,7 @@ if len(K.tensorflow_backend._get_available_gpus()) > 0:
 BATCH_SIZE = 64  # Batch size for training.
 EPOCHS = 100
 LATENT_DIM = 256
-LATENT_DIH_deCODER = 256 # 较seq2seq多出的参数
+LATENT_DIM_DECODER = 256 # 较seq2seq多出的参数
 NUM_SAMPLES = 1000  # 训练样本句子数
 MAX_SEQUENCE_LENGTH = 100
 MAX_NUM_WORDS = 20000
@@ -199,14 +200,14 @@ decoder_embedding = Embedding(num_words_translation, EMBEDDING_DIM)
 decoder_inputs_x = decoder_embedding(decoder_inputs_placehoder)
 
 decoder_lstm = LSTM(
-	units=LATENT_DIH_deCODER,
+	units=LATENT_DIM_DECODER,
 	return_state=True
 )
 decoder_dense = Dense(num_words_translation, activation='softmax')
 
 # 输入的初始状态将会是赋值为0的 tensor
-initial_s = Input(shape=(LATENT_DIH_deCODER, ), name='s0')
-initial_c = Input(shape=(LATENT_DIH_deCODER, ), name='c0')
+initial_s = Input(shape=(LATENT_DIM_DECODER, ), name='s0')
+initial_c = Input(shape=(LATENT_DIM_DECODER, ), name='c0')
 context_last_word_concat_layer = Concatenate(axis=2)
 
 # 像seq2seq，用sos、eos偏置，一次性用tensor进行训练
@@ -252,16 +253,35 @@ model = Model(inputs=[encoder_inputs_placehoder,
 					  initial_c],
 			  outputs=outputs
 )
-
+#  metrics=['accuracy']
+# from keras import metrics
 model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
-z = np.zeros(shape=(NUM_SAMPLES, LATENT_DIH_deCODER)) # 初始化 [s, c]
+init_decoder_state = np.zeros(shape=(NUM_SAMPLES, LATENT_DIM_DECODER)) # 初始化 [s, c]
+
+from keras.callbacks import TensorBoard
+tensorboard = TensorBoard(log_dir='./logs', histogram_freq=0,
+                          write_graph=True, write_images=False)
+n = 0
+class my_call_back(keras.callbacks.Callback):
+	def on_train_begin(self, logs={}):
+		self.losses = []
+
+	def on_batch_end(self, batch, logs={}):
+		global n
+		self.losses.append(logs.get('loss'))
+		n += 1
+		print("第%d个batch. %f" % (n, logs.get('loss')))
+
+
+call_back = my_call_back()
 r = model.fit(
-	x=[encoder_inputs, decoder_inputs, z, z],
+	x=[encoder_inputs, decoder_inputs, init_decoder_state, init_decoder_state],
 	y=decoder_outputs_one_hot,
 	batch_size=BATCH_SIZE,
 	epochs=EPOCHS,
-	validation_split=0.2
+	validation_split=0.2,
+	callbacks=[tensorboard, call_back]
 )
 
 plt.plot(r.history['loss'], label='loss')
@@ -323,8 +343,8 @@ def get_translation(input_seq):
 	# 如果预测到eos就结束
 	eos_index = word2index_outputs['<eos>']
 
-	s = np.zeros((1, LATENT_DIH_deCODER))
-	c = np.zeros((1, LATENT_DIH_deCODER))
+	s = np.zeros((1, LATENT_DIM_DECODER))
+	c = np.zeros((1, LATENT_DIM_DECODER))
 
 	# 产生翻译,
 	output_sentence = []
