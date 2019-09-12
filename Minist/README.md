@@ -24,17 +24,7 @@ Adam的思想：不仅对二阶梯度进行指数移动衰减， 对一阶梯度
 
 cache = cache / (1 - decay^t)  t表示迭代次数。该操作可校正初始没步可移动平均的尴尬。
 
-从Adam和RMSProp的整体公式上来看，Adam对损失函数对自变量的梯度，即一阶导，也采用了cache或叫momentum，所以有人称Adam是“RMSProp with momentum”。
-
-
-
-_np: numpy	tf: tensorflow	ke:  keras	mx: mxnet
-
-
-
-**后缀说明：**
-
-_np: numpy	tf: tensorflow	ke:  keras	mx: mxnet
+从Adam和RMSProp的整体公式上来看，Adam的损失函数对自变量的梯度，转换为了类momentum，所以有人称Adam是“RMSProp with momentum”。
 
 
 
@@ -42,8 +32,15 @@ _np: numpy	tf: tensorflow	ke:  keras	mx: mxnet
 
 1.开头的是一些优化算法。
 
+2.开头的是用感知机进行训练预测手写数字。
+
+3.开头的是用卷积神经网络进行手写数字预测。两种结构，一种是kaggle top8%版的，[cnn_ke.py引用Yassine Ghouzam, PhD的分享](https://www.kaggle.com/woshiliziming/minist)；cnn_mx.py我用mxnet重写了上述卷积结构。还有一种就是用典型的Lenet预测手写数字。数据读取方式也试了下，如 mxnet直接读图和先制作成RecordIO文件，再读取。tf，mx数据增强。
+
+4.开头的是用Bi-LSTM进行预测。分别将横纵与纵轴当做序列，经过Bi-LSTM，输出每个序列的隐藏状态。通过GlobalAveragePooling1D进行序列中的特征进行压缩提取，然后将横轴序列特征组合下经过Dense进行10分类。
+
+
+
+**数据集下载：**
+
 [Minist文件夹用到的数据集下载](https://drive.google.com/file/d/1dQk9YIUDQZbubn4a3cay6hctYoBJjpiu/view?usp=sharing)
 
-**文件结构：**
-
-按照dive into deep learning的章节，代码基本都是关于gulon的。
