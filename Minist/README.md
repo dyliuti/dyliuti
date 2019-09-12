@@ -2,9 +2,11 @@
 
 **"Practice，practice，practice and summary makes perfect" —— dyliuti**
 
+------
 
+<br>
 
-**优化算法：**
+优化算法：**
 
 梯度下降是目标函数在自变量当前位置下降最快的方向。对于多维梯度，容易误入“歧途”，如往最低点的梯度下降较别的自变量的梯度下降平缓得多。梯度下降法会变得非常缓慢，一是学习率要低点，二是容易陷入局部低点。
 
@@ -22,11 +24,11 @@ Adagrad与RMSProp的思想：因为各方向的梯度大小不同，梯度很小
 
 Adam的思想：不仅对二阶梯度进行指数移动衰减， 对一阶梯度也进行了指数移动衰减。且对指数衰减后的值进行变换：
 
-cache = cache / (1 - decay^t)  t表示迭代次数。该操作可校正初始没步可移动平均的尴尬。
+cache = cache / (1 - decay^t)  t表示迭代次数。该操作可校正初始每步可移动平均的尴尬。
 
 从Adam和RMSProp的整体公式上来看，Adam的损失函数对自变量的梯度，转换为了类momentum，所以有人称Adam是“RMSProp with momentum”。
 
-
+<br>
 
 **文件说明：**
 
@@ -38,7 +40,7 @@ cache = cache / (1 - decay^t)  t表示迭代次数。该操作可校正初始没
 
 4.开头的是用Bi-LSTM进行预测。分别将横纵与纵轴当做序列，经过Bi-LSTM，输出每个序列的隐藏状态。通过GlobalAveragePooling1D进行序列中的特征进行压缩提取，然后将横轴序列特征组合下经过Dense进行10分类。
 
-
+<br>
 
 **数据集下载：**
 

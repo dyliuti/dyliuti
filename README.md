@@ -2,13 +2,29 @@
 
 **"Practice，practice，practice and summary makes perfect" —— dyliuti**
 
+------
 
+<br>
 
 **简介：**
 
 个人在学习深度学习时写过、测试过的代码。还有一些基于实践上的思考、总结。
 
+<br>
 
+**简化符号说明：**
+
+T:   对应书中的num_steps，序列长度。
+
+N:  随机梯度，N=1；批量随机梯度，N=batch_size; 全量，N=examples_num
+
+H:  hidden_size，LSTM或GRU隐藏层维度。
+
+D: 对应Embedding的维度
+
+V: 对应语料库中不重复词的数量，相当于预测时dense的输出维度
+
+<br>
 
 **文件结构：**
 

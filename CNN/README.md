@@ -2,7 +2,11 @@
 
 **"Practice，practice，practice makes perfect" —— dyliuti**
 
-**1.卷积神经网络的特点**
+------
+
+<br>
+
+1.卷积神经网络的特点**
 
 除1x1xc的卷积核外，卷积神经网络是特征提取器。从构成结构来看，除去BN、非线性转换等优化梯度下降的操作外，骨干结构是卷积+池化。卷积用于提取特征；池化降参数、保持位置关系，也是随着网络加深，感受野越来越大的原因。因为池化的特性，导致了池化在图像处理中特别好用，但在自然语言处理中被抛弃。池化也是解释卷积神经网络浅层检测到目标的纹理，深层检测到目标的整体轮廓的关键。换个应用领域，从目标检测上来看池化，浅层用低比例anchor可以检测小目标，深层用高比例anchor可以检测大目标。（卷积stride大于1的时候hw也缩小了）。
 
@@ -18,13 +22,13 @@
 
 说明之前，需要知道的是，ssd的迭代目标是以anchor为基础的，就是预测框。如L1损失的anchor4个偏移量，anchor检测到图像目标的交叉熵（背景类不计入）。
 
-**效率问题：**
+效率问题：
 
-**目标大小问题：**
+目标大小问题：
 
-**目标形状问题：**
+目标形状问题：
 
-
+<br>
 
 **程序运行说明：**
 
@@ -46,6 +50,15 @@
 
 效果：通过手动搭建resnet50，包括几个关键的模块，如conv_block, identity_block等，熟悉resnet50的各个环节。对原生的tensorflow神经网络再次封装，每个类保持相同的接口。参数复用， 通过对比keras中resnet50的输出结果与手动搭建的resnet50输出结果，查看效果。
 
-
+<br>
 
 **备注**：提供的vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5   与 resnet50_weights_tf_dim_ordering_tf_ kernels.h5 都是V2版本的，具体看你安装的keras.appliacation.vgg16类中用的是v几版本。不对的话，点开提示下载的路径，进行下载就好了。
+
+<br>
+
+**数据集：**
+
+[素材文件：解压后的CNN文件夹放在Data文件夹下](https://drive.google.com/file/d/1qawzj_5DC6wZKJyiezmwYTJ_OBv477Ih/view?usp=sharing)
+
+[style_transformer、ssd与resnet要用到的模型文件](https://drive.google.com/file/d/1tQ_v_iraEj5VPIEqzgGi1kw26hqcvJiR/view?usp=sharing)
+
