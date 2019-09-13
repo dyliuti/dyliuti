@@ -18,7 +18,7 @@ def get_cost_multi(sequences):
 
 # 加载数据
 sequences = []
-for line in open('Markov/coin_data.txt'):
+for line in open('Data/Markov/coin_data.txt'):
 	# 1 for H, 0 for T
 	sequence_ = [1 if e == 'H' else 0 for e in line.rstrip()]
 	sequences.append(sequence_)

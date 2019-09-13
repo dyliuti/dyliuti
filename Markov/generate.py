@@ -19,7 +19,7 @@ def generate_sequence(N):
     return sequence
 
 
-with open('Markov/coin_data.txt', 'w') as f:
+with open('Data/Markov/coin_data.txt', 'w') as f:
     for n in range(50):
         sequence_ = generate_sequence(30)
         sequence = ''.join(symbol_map[s] for s in sequence_)

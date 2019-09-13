@@ -8,7 +8,7 @@ transitions = {}
 state_prev_num = {}
 
 # count(s -> e) / count(s)    state_prev_num = count(s)  count(s -> e) = transitions[(s, e)]
-for line in open('Markov/site_data.csv'):
+for line in open('Data/Markov/site_data.csv'):
     start, end = line.rstrip().split(',')
     transitions[(start, end)] = transitions.get((start, end), 0.) + 1
     state_prev_num[start] = state_prev_num.get(start, 0.) + 1

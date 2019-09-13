@@ -285,8 +285,8 @@ def load_poetry_classifier_data(samples_per_class, load_cached=False, save_cache
 
 # train都是词的索引，test都是词对应的tag的索引
 def load_chunking(split_sequence=True):
-	train_file = 'Data/NLP/chunking/train.txt'
-	test_file = 'Data/NLP/chunking/test.txt'
+	train_file = 'Data/Markov/chunking/train.txt'
+	test_file = 'Data/Markov/chunking/test.txt'
 	word2index, tag2index = {}, {}
 	word_index, tag_index = 0, 0
 	X_train, Y_train, current_X, current_Y = [], [], [], []

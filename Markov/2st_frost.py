@@ -24,7 +24,7 @@ def add2dict(key_map_next_word, key, next_word):
         key_map_next_word[key] = []
         key_map_next_word[key].append(next_word)
 
-for line in open('robert_frost.txt', encoding='utf-8'):
+for line in open('Data/Markov/robert_frost.txt', encoding='utf-8'):
     # 按空格分离后成为list
     tokens = remove_punctuation(line.rstrip().lower()).split()
     # 句子长度
