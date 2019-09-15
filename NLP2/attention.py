@@ -6,6 +6,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import keras.backend as K
 import keras
+import pandas as pd
 
 # 1000个词，epochs=100 中英文去停顿标点，中文短语形式 loss: 0.0193 - acc: 0.9886 - val_loss: 3.0284 - val_acc: 0.6933
 # 1000个词，epochs=100 中英文去停顿标点，中文词形式   loss: 0.0185 - acc: 0.9889 - val_loss: 3.2927 - val_acc: 0.6482
@@ -42,10 +43,10 @@ if len(K.tensorflow_backend._get_available_gpus()) > 0:
 # twitter_chat.txt: 100 epochs # 59s 9ms/step - loss: 0.0833 - acc: 0.9952 - val_loss: 2.8875 - val_acc: 0.7297
 
 BATCH_SIZE = 64  # Batch size for training.
-EPOCHS = 100
+EPOCHS = 80
 LATENT_DIM = 256
 LATENT_DIM_DECODER = 256 # 较seq2seq多出的参数
-NUM_SAMPLES = 1000  # 训练样本句子数
+NUM_SAMPLES = 10000  # 训练样本句子数
 MAX_SEQUENCE_LENGTH = 100
 MAX_NUM_WORDS = 20000
 EMBEDDING_DIM = 100
@@ -373,6 +374,10 @@ def get_translation(input_seq):
 
 	return output_sentence, params, embeddings
 
+pd.set_option('display.max_columns', 1000)
+pd.set_option('display.width', 1000)
+# pd.set_option('display.max_colwidth', 1000)
+
 while True:
 	# 随机选择一个句子，并对其进行翻译
 	i = np.random.choice(len(input_texts))
@@ -380,10 +385,16 @@ while True:
 	input_sentence = [index2word_eng[word_index] for word_index in input_seq[0] if word_index > 0]
 	print("输入句子：", input_sentence)
 	output_sentence, params, embeddings = get_translation(input_seq)
-	params_ = np.array(params).squeeze()
+	params_shape = np.array(params).shape
+	# params_ = np.array(params).squeeze()
+	params_ = np.array(params).reshape((params_shape[0], params_shape[2]))
 	print("翻译得到句子：", output_sentence)
-	print(params_)
-	print(embeddings)
+	columns = input_texts[i]
+	for _ in range(max_len_input - len(columns)):
+		columns.append('<eos>')
+	dataFrame = pd.DataFrame(data=params_, index=output_sentence, columns=columns, dtype=float)
+	print(dataFrame)
+	# print(embeddings)
 	ans = input("Continue? [Y/n]")
 	if ans and ans.lower().startswith('n'):
 		break
