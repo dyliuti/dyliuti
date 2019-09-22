@@ -38,7 +38,7 @@ tfsequence = tf.placeholder(tf.int32, shape=(None, ), name='sequence')
 # outputs, elem   outputs有两个元素，
 def recurrence(sequence_t_state_i, sequence_t):
 	sequence_t_state_i = tf.reshape(sequence_t_state_i[0], shape=(1, H))
-	# 1xH HxH -> 1xH * M, -> 1xH     # 矩阵相乘，已经包含了 sequence_t_next_state_ij -> sequence_t_next_state_j过程
+	# 1xH HxH -> 1xH * H, -> 1xH     # 矩阵相乘，已经包含了 sequence_t_next_state_ij -> sequence_t_next_state_j过程
 	sequence_t_next_state_j = tf.matmul(sequence_t_state_i, trans_mat) * emit_mat[:, sequence_t]
 	sequence_t_next_state_j = tf.reshape(sequence_t_next_state_j, (H, ))
 	sequence_t_next = tf.reduce_sum(sequence_t_next_state_j)

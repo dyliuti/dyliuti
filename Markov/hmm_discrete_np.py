@@ -120,14 +120,18 @@ def get_state_sequence(sequence):
 	T = len(sequence)
 	delta = np.zeros((T, H))
 	psi = np.zeros((T, H))
+	# H * Hx1 -> H
 	delta[0] = pi * emit_mat[:, sequence[0]]
 	for t in range(1, T):
 		for j in range(H):
+			# 前t-1到t时刻状态j最大概率时，对应的观测序列概率 单个j：H->1->O1 多个j：H->H->O1  两次max 下面的是H->1的max 回溯H->O1的max
 			delta[t, j] = np.max(delta[t - 1] * trans_mat[:, j]) * emit_mat[j, sequence[t]]
+			# 前t-1到t时刻状态j最大概率时的t-1时刻的状态索引  t j状态索引 -> t-1 i状态索引
 			psi[t, j] = np.argmax(delta[t - 1] * trans_mat[:, j])
 
 	# 回溯
 	states = np.zeros(T, dtype=np.int32)
+	# 得到最有可能的最后一个状态（对应观测序列概率最大）
 	states[T - 1] = np.argmax(delta[T - 1])
 	for t in range(T - 2, -1, -1):
 		states[t] = psi[t + 1, states[t + 1]]

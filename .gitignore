@@ -3,6 +3,9 @@
 /Data/FacialExpression/*.csv
 /Data/Minist/*
 /Data/NLP/*
+/Data/NLP2/*
+/Data/Markov/*
+/Data/NLP_CH/*
 /Data/CNN/*
 param*.txt
 Minist/test.py

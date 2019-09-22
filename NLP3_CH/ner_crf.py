@@ -69,7 +69,7 @@ def process_t(words):
 	return pro_words
 
 
-dir_ = "Data/NLP/Chinese/"
+dir_ = "Data/NLP_CH/"
 train_corpus_path = dir_ + "1980_01rmrb.txt"
 process_corpus_path = dir_ + "result-rmrb.txt"
 maps = {u't': u'T', u'nr': u'PER', u'ns': u'ORG', u'nt': u'LOC'}
@@ -88,6 +88,15 @@ write_corpus_to_file(data='\n'.join(new_lines).encode('utf-8'), file_path=proces
 lines = read_corpus_from_file(process_corpus_path)
 words_list = [line.strip().split('  ') for line in lines if line.strip()]  #  if line.strip() 保证不是空格行
 # del lines
+
+# words_seqs['迈向/v', '充满/v', '希望/n', '的/u', '新/a', '世纪/n', '——/w', '一九九八年新年/t', '讲话/n', '(/w', '附/v', '图片/n', '1/m', '张/q', ')/w']
+# pos_seqs: ['v', 'v', 'n', 'u', 'a', 'n', 'w', 't', 'n', 'w', 'v', 'n', 'm', 'q', 'w']
+# tag_seqs: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'T', 'O', 'O', 'O', 'O', 'O', 'O', 'O']
+# pos_seq_: [['v', 'v'], ['v', 'v'], ['n', 'n'], ['u'], ['a'], ['n', 'n'], ['w', 'w'], ['t', 't', 't', 't', 't', 't', 't'], ['n', 'n'], ['w'], ['v'], ['n', 'n'], ['m'], ['q'], ['w']]
+# tag_seq_: [['O', 'O'], ['O', 'O'], ['O', 'O'], ['O'], ['O'], ['O', 'O'], ['O', 'O'], ['B_T', 'I_T', 'I_T', 'I_T', 'I_T', 'I_T', 'I_T'], ['O', 'O'], ['O'], ['O'], ['O', 'O'], ['O'], ['O'], ['O']]
+# pos_seq:  ['un', 'v', 'v', 'v', 'v', 'n', 'n', 'u', 'a', 'n', 'n', 'w', 'w', 't', 't', 't', 't', 't', 't', 't', 'n', 'n', 'w', 'v', 'n', 'n', 'm', 'q', 'w', 'un']
+# tag_seqs: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B_T', 'I_T', 'I_T', 'I_T', 'I_T', 'I_T', 'I_T', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']	# 不包含首尾'un'
+# word_seqs_['<BOS>', '迈', '向', '充', '满', '希', '望', '的', '新', '世', '纪', '—', '—', '一', '九', '九', '八', '年', '新', '年', '讲', '话', '(', '附', '图', '片', '1', '张', ')', '<EOS>']
 
 """初始化字序列、词性序列、标记序列 """
 words_seqs = [[word.split(u'/')[0] for word in words] for words in words_list]

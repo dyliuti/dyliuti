@@ -3,7 +3,7 @@ import sklearn_crfsuite
 from sklearn_crfsuite import metrics
 from sklearn.externals import joblib
 
-dir_ = "Data/NLP/Chinese/"
+dir_ = "Data/NLP_CH/"
 class CorpusProcess(object):
 
 	def __init__(self):

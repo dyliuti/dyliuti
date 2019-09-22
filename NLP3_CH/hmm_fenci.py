@@ -264,7 +264,7 @@ class HMM_FenCi(HMM_Model):
 
 
 FenCi = HMM_FenCi()
-FenCi.read_txt("Data/NLP/Chinese/syj_trainCorpus_utf8.txt")
+FenCi.read_txt("Data/NLP_CH/syj_trainCorpus_utf8.txt")
 FenCi.train()
 
 FenCi.lcut("中国的人工智能发展进入高潮阶段。")

@@ -2,7 +2,7 @@ import random
 import jieba
 import pandas as pd
 # 指定文件目录
-dir_ = "./Data/NLP/Chinese/NB_SVM/"
+dir_ = "./Data/NLP_CH/NB_SVM/"
 # 指定语料
 stop_words = "".join([dir_,'stopwords.txt'])
 laogong = "".join([dir_,'beilaogongda.csv'])  #被老公打
