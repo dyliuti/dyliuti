@@ -21,12 +21,12 @@ def total_f1_score(tags, states):
 # X: 词汇  Y: tag 词性
 X_train, Y_train, X_test, Y_test, word2index = load_chunking(split_sequence=True)
 # +1是因为序号从0开始
-M = max(max(y) for y in Y_train) + 1
+H = max(max(y) for y in Y_train) + 1
 V = len(word2index) + 1		# +1 是因为 emit中类别从0开始，不然emit中下标会越界
 
 smoothing = 0.1
-pi = np.zeros(M)
-trans_mat = np.ones(shape=(M, M)) * smoothing
+pi = np.zeros(H)
+trans_mat = np.ones(shape=(H, H)) * smoothing
 # 计算首个词性的频数与词性->下个词性转换频数
 for tags in Y_train:
 	pi[tags[0]] += 1
@@ -37,18 +37,18 @@ pi /= pi.sum()
 trans_mat /= trans_mat.sum(axis=1, keepdims=True)
 
 # 计算每个tag->每个词的频数
-emit_mat = np.ones(shape=(M, V)) * smoothing
+emit_mat = np.ones(shape=(H, V)) * smoothing
 for sequence, tags in zip(X_train, Y_train):
 	for word_index, tag in zip(sequence, tags):
 		emit_mat[tag, word_index] += 1
 emit_mat /= emit_mat.sum(axis=1, keepdims=True)
 
-hmm = HMM(M)
+hmm = HMM(H)
 hmm.pi = pi
 hmm.trans_mat = trans_mat
 hmm.emit_mat = emit_mat
 
-# 解问题2：给定序列下，得到最有可能的状态
+# 解问题2：给定序列下，得到最有可能的状态序列，这里对应标签
 states_train = []
 for sequence in X_train:
 	states = hmm.get_state_sequence(sequence)

@@ -68,3 +68,6 @@ print("电话号码是: ", num)
 # 删除非数字(-)的字符串
 num = re.sub(r',!', "", phone)
 print("电话号码是 : ", num)
+
+import tensorflow as tf
+tf.__version__

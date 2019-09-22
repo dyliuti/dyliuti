@@ -23,26 +23,26 @@ for line in open('Data/Markov/coin_data.txt'):
 	sequence_ = [1 if e == 'H' else 0 for e in line.rstrip()]
 	sequences.append(sequence_)
 
-M = 2
+H = 2
 V = max(max(sequence) for sequence in sequences) + 1
-sequences_num = len(sequences)
+sequences_len = len(sequences)
 
 # 明显tf维度要求更严格 54行：pi * trans_mat[:, tfsequence[0]]
-pi = tf.nn.softmax(tf.Variable(tf.ones(M)))
-trans_mat  = random_normalized(M, M)
-emit_mat = random_normalized(M, V)
+pi = tf.nn.softmax(tf.Variable(tf.ones(H)))
+trans_mat  = random_normalized(H, H)
+emit_mat = random_normalized(H, V)
 
 ####### 建立模型 ########
 tfsequence = tf.placeholder(tf.int32, shape=(None, ), name='sequence')
 # 序列t 多个状态i -> 序列t+1 状态j的概率
 # outputs, elem   outputs有两个元素，
 def recurrence(sequence_t_state_i, sequence_t):
-	sequence_t_state_i = tf.reshape(sequence_t_state_i[0], shape=(1, M))
-	# 1xM MxM -> 1xM * M, -> 1xM     # 矩阵相乘，已经包含了 sequence_t_next_state_ij -> sequence_t_next_state_j过程
+	sequence_t_state_i = tf.reshape(sequence_t_state_i[0], shape=(1, H))
+	# 1xH HxH -> 1xH * M, -> 1xH     # 矩阵相乘，已经包含了 sequence_t_next_state_ij -> sequence_t_next_state_j过程
 	sequence_t_next_state_j = tf.matmul(sequence_t_state_i, trans_mat) * emit_mat[:, sequence_t]
-	sequence_t_next_state_j = tf.reshape(sequence_t_next_state_j, (M, ))
+	sequence_t_next_state_j = tf.reshape(sequence_t_next_state_j, (H, ))
 	sequence_t_next = tf.reduce_sum(sequence_t_next_state_j)
-	# sequence_t_next总共M个状态，每个状态占的比例就是 HMM输出了序列T1,T2...Tt+1,并且位于状态j的概率
+	# sequence_t_next总共H个状态，每个状态占的比例就是 HMM输出了序列T1,T2...Tt+1,并且位于状态j的概率
 	return sequence_t_next_state_j / sequence_t_next, sequence_t_next
 
 
@@ -50,7 +50,7 @@ def recurrence(sequence_t_state_i, sequence_t):
 alpha, p_sequence_scale = tf.scan(
 	fn=recurrence,
 	elems=tfsequence[1:],
-	# M, M,-> M,  这里tf.Variable跟numpy一样
+	# H, H,-> H,  这里tf.Variable跟numpy一样
 	# np.float32(1.0)作为初始句子概率，初始值大小不影响结果，只是给输出占个位置
 	initializer=(pi * emit_mat[:, tfsequence[0]], np.float32(1)),
 )
@@ -69,7 +69,7 @@ with tf.Session() as session:
 	costs = []
 	# 拟合参数
 	for epoch in range(epochs):
-		for t in range(sequences_num):
+		for t in range(sequences_len):
 			c = get_cost_multi(sequences).sum()
 			print("epoch: ", epoch, "t: ", t, "cost: ", cost)
 			costs.append(c)
@@ -77,13 +77,11 @@ with tf.Session() as session:
 	plt.plot(costs)
 	plt.show()
 
+	# tensorfolw: 对于拟合参数求得的极大似然值: 1032.831
+	# Baum-Welch: 对于拟合参数求得的极大似然值: -1031.8137967377554
+	# 两种方法其实是很接近的
 	L = get_cost_multi(sequences).sum()
 	print("对于拟合参数求得的极大似然值:", L)
 
-	pi = np.array([0.5, 0.5])
-	A = np.array([[0.1, 0.9], [0.8, 0.2]])
-	B = np.array([[0.6, 0.4], [0.3, 0.7]])
-	L = get_cost_multi(sequences).sum()
-	print("对于真实参数求得的极大似然值:", L)
 
 

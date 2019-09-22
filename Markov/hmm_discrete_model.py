@@ -7,76 +7,76 @@ def random_normalized(d1, d2):
 
 # 加了归一化
 class HMM:
-	def __init__(self, M):
+	def __init__(self, H):
 		# 隐状态个数
-		self.M = M
+		self.H = H
 		
 	def fit(self, sequences, epochs=30):
 		# 观测量种类  硬币抛掷就两种观测结果   +1是因为序号从0开始
 		V = max(max(sequence) for sequence in sequences) + 1
-		sequences_num = len(sequences)
+		sequences_len = len(sequences)
 
 		# 初始化EM算法参数
-		self.pi = np.ones(self.M) / self.M
-		self.trans_mat = random_normalized(self.M, self.M)
-		self.emit_mat = random_normalized(self.M, V)
+		self.pi = np.ones(self.H) / self.H
+		self.trans_mat = random_normalized(self.H, self.H)
+		self.emit_mat = random_normalized(self.H, V)
 
 		costs = []
 		for epoch in range(epochs):
 			alphas = []
 			betas = []
-			p_sequence = np.zeros(sequences_num)
+			p_sequence = np.zeros(sequences_len)
 
-			for n in range(sequences_num):
+			for n in range(sequences_len):
 				sequence = sequences[n]
 				T = len(sequence)
 				scale = np.zeros(T)
 				# 观测序列上，每个状态对应着各种观测结果概率  P(Z0) * P(Y0 | Z0)
-				alpha = np.zeros(shape=(T, self.M))
-				alpha[0] = self.pi * self.emit_mat[:, sequence[0]]
+				alpha = np.zeros(shape=(T, self.H))
+				alpha[0] = self.pi * self.emit_mat[:, sequence[0]]	# 在观测序列已知的前提下，各状态转换为该序列观测的概率
 				for t in range(1, T):
 					# 观察者概率：P(Y0..Yt-1, Zt-1) * P(Zt | Zt-1) * P(Yt | Zt) -> P(Y0..Yt, Zt)
-					# M, MxM -> M, M, -> M,
+					# H, HxH -> H, H, -> H,
 					alpha[t] = alpha[t - 1].dot(self.trans_mat) * self.emit_mat[:, sequence[t]]
 				p_sequence[n] = alpha[-1].sum()
 				alphas.append(alpha)
 
-				beta = np.zeros(shape=(T, self.M))
+				beta = np.zeros(shape=(T, self.H))
 				beta[-1] = 1
 				for t in range(T - 2, -1, -1):  # 不包括-1 [ )
-					# MxM M -> M
+					# HxH H -> H
 					beta[t] = self.trans_mat.dot(self.emit_mat[:, sequence[t + 1]] * beta[t + 1])
 				betas.append(beta)
 
 			cost = np.sum(np.log(p_sequence))
 			costs.append(cost)
 			# 利用期望 重新估计self.pi, self.trans_mat, self.emit_mat
-			self.pi = np.sum((alphas[n][0] * betas[n][0]) / p_sequence[n] for n in range(sequences_num)) / sequences_num
+			self.pi = np.sum((alphas[n][0] * betas[n][0]) / p_sequence[n] for n in range(sequences_len)) / sequences_len
 
-			den_trans = np.zeros(shape=(self.M, 1))
-			den_emit = np.zeros(shape=(self.M, 1))
+			den_trans = np.zeros(shape=(self.H, 1))
+			den_emit = np.zeros(shape=(self.H, 1))
 			trans_num = 0
 			emit_num = 0
-			for n in range(sequences_num):
+			for n in range(sequences_len):
 				sequence = sequences[n]
 				T = len(sequence)
 
-				# NxTxM alphas[n][: -1]: T-1xM -> 1xM -> Mx1
+				# NxTxH alphas[n][: -1]: T-1xH -> 1xH -> Hx1
 				den_trans += (alphas[n][: -1] * betas[n][: -1]).sum(axis=0, keepdims=True).T / p_sequence[n]
-				# NxTxM alphas[n] TxM -> 1xM -> Mx1
+				# NxTxH alphas[n] TxH -> 1xH -> Hx1
 				den_emit += (alphas[n] * betas[n]).sum(axis=0, keepdims=True).T / p_sequence[n]
 				# print("den_emit shape: ", den_emit, np.shape(den_emit))
 				# 计算self.trans_mat的分子
-				trans_num_n = np.zeros(shape=(self.M, self.M))
-				for i in range(self.M):
-					for j in range(self.M):
+				trans_num_n = np.zeros(shape=(self.H, self.H))
+				for i in range(self.H):
+					for j in range(self.H):
 						for t in range(T - 1):  # 6-27
 							trans_num_n[i, j] += alphas[n][t, i] * self.trans_mat[i, j] * self.emit_mat[j, sequence[t + 1]] * \
 												 betas[n][t + 1, j]
 				trans_num += trans_num_n / p_sequence[n]
 
-				emit_num_n = np.zeros(shape=(self.M, V))
-				for j in range(self.M):
+				emit_num_n = np.zeros(shape=(self.H, V))
+				for j in range(self.H):
 					for t in range(T):  # 6-28
 						emit_num_n[j, sequence[t]] += alphas[n][t, j] * betas[n][t, j]
 				emit_num += emit_num_n / p_sequence[n]
@@ -94,7 +94,7 @@ class HMM:
 		# returns log P(x | model)
 		# 使用前向后向算法求得 P(Zt|model)
 		T = len(sequence)
-		alpha_ = np.zeros(shape=(T, self.M))
+		alpha_ = np.zeros(shape=(T, self.H))
 		alpha_[0] = self.pi * self.emit_mat[:, sequence[0]]
 		for t in range(1, T):
 			alpha_[t] = alpha_[t - 1].dot(self.trans_mat) * self.emit_mat[:, sequence[t]]
@@ -109,14 +109,14 @@ class HMM:
 	def get_state_sequence(self, sequence):
 		# 使用Viterbi算法，给定观测序列，返回最有可能的状态序列
 		T = len(sequence)
-		delta = np.zeros((T, self.M))
-		psi = np.zeros((T, self.M))
+		delta = np.zeros((T, self.H))
+		psi = np.zeros((T, self.H))
 		delta[0] = self.pi * self.emit_mat[:, sequence[0]]	# M种最优
 		for t in range(1, T):
-			for j in range(self.M):
+			for j in range(self.H):
 				# delta[t, j] = np.max(delta[t - 1] * self.trans_mat[:, j]) * self.emit_mat[j, sequence[t]]
 				# state_i = np.argmax(delta[t - 1] * self.trans_mat[:, j])
-				# M, M, 1 -> M,  沿着路径到t, 状态j时，输出O1,O2...Ot的最大概率。
+				# H, H, 1 -> H,  沿着路径到t, 状态j时，输出O1,O2...Ot的最大概率。
 				delta[t, j] = np.max(delta[t - 1] * self.trans_mat[:, j] * self.emit_mat[j, sequence[t]])
 				# 记录输出O1,O2...Ot的概率最大时， 记录下t位置,状态j时的前一个状态i（argmax的是M个i状态）
 				state_i = np.argmax(delta[t - 1] * self.trans_mat[:, j] * self.emit_mat[j, sequence[t]])
