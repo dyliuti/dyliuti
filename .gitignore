@@ -13,7 +13,7 @@ Minist/test.py
 UI
 /QtUI/*
 QtUI
-test.py
+test*.py
 main.py
 theme_blue_rc.py
 ./logs/*

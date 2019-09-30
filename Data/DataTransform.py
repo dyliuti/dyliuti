@@ -113,3 +113,101 @@ def segment_by_window(words_list=None, window=3):
 		end = end + 1
 	return words
 
+
+# hard labels
+# purity最高为1, 越高越好
+def purity2(Y, R):
+	C = np.argmax(R, axis=1) # cluster数
+
+	N = len(Y) # 数据量
+	K = len(set(Y)) # 分类数
+
+	total = 0.0
+	for k in range(K):
+		max_intersection = 0
+		for j in range(K):
+			intersection = ((C == k) & (Y == j)).sum()
+			if intersection > max_intersection:
+				max_intersection = intersection
+		total += max_intersection
+	return total / N
+
+# purity最高为1, 越高越好
+def purity(Y, R):
+	N, K = R.shape
+	p = 0
+	for k in range(K):
+		best_target = -1
+		max_intersection = 0
+		for j in range(K):
+			intersection = R[Y==j, k].sum()
+			if intersection > max_intersection:
+				max_intersection = intersection
+				best_target = j
+		p += max_intersection
+	return p / N
+
+
+# hard labels
+def DBI2(X, R):
+	N, D = X.shape
+	_, K = R.shape
+
+	# 先计算sigmas, means first
+	sigma = np.zeros(K)
+	M = np.zeros((K, D))
+	assignments = np.argmax(R, axis=1)
+	for k in range(K):
+		Xk = X[assignments == k]
+		M[k] = Xk.mean(axis=0)
+		# assert(Xk.mean(axis=0).shape == (D,))
+		n = len(Xk)
+		diffs = Xk - M[k]
+		sq_diffs = diffs * diffs
+		sigma[k] = np.sqrt( sq_diffs.sum() / n )
+
+	# 计算 Davies-Bouldin Index
+	dbi = 0
+	for k in range(K):
+		max_ratio = 0
+		for j in range(K):
+			if k != j:
+				numerator = sigma[k] + sigma[j]
+				denominator = np.linalg.norm(M[k] - M[j])
+				ratio = numerator / denominator
+				if ratio > max_ratio:
+					max_ratio = ratio
+		dbi += max_ratio
+	return dbi / K
+
+
+
+def DBI(X, M, R):
+	# 2个聚类间std偏差和/聚类均值间距离的比值 越低越好
+	N, D = X.shape
+	K, _ = M.shape
+
+	# 先计算sigmas
+	sigma = np.zeros(K)
+	for k in range(K):
+		diffs = X - M[k]
+		squared_distances = (diffs * diffs).sum(axis=1)
+		weighted_squared_distances = R[:,k]*squared_distances
+		sigma[k] = np.sqrt( weighted_squared_distances.sum() / R[:,k].sum() )
+
+	# 计算 Davies-Bouldin Index
+	dbi = 0
+	for k in range(K):
+		max_ratio = 0
+		for j in range(K):
+			if k != j:
+				numerator = sigma[k] + sigma[j]
+				denominator = np.linalg.norm(M[k] - M[j])
+				ratio = numerator / denominator
+				if ratio > max_ratio:
+					max_ratio = ratio
+		dbi += max_ratio
+	return dbi / K
+
+
+

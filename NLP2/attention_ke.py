@@ -19,7 +19,7 @@ if len(K.tensorflow_backend._get_available_gpus()) > 0:
 BATCH_SIZE = 64  # Batch size for training.
 EPOCHS = 100
 LATENT_DIM = 256
-LATENT_DIH_deCODER = 256 # 较seq2seq多出的参数
+LATENT_DIH_DECODER = 256 # 较seq2seq多出的参数
 NUM_SAMPLES = 1000  # 训练样本句子数
 MAX_SEQUENCE_LENGTH = 100
 MAX_NUM_WORDS = 20000
@@ -172,14 +172,14 @@ decoder_embedding = Embedding(num_words_translation, EMBEDDING_DIM)
 decoder_inputs_x = decoder_embedding(decoder_inputs_placehoder)
 
 decoder_lstm = LSTM(
-	units=LATENT_DIH_deCODER,
+	units=LATENT_DIH_DECODER,
 	return_state=True
 )
 decoder_dense = Dense(num_words_translation, activation='softmax')
 
 # 输入的初始状态将会是赋值为0的 tensor
-initial_s = Input(shape=(LATENT_DIH_deCODER, ), name='s0')
-initial_c = Input(shape=(LATENT_DIH_deCODER, ), name='c0')
+initial_s = Input(shape=(LATENT_DIH_DECODER, ), name='s0')
+initial_c = Input(shape=(LATENT_DIH_DECODER, ), name='c0')
 context_last_word_concat_layer = Concatenate(axis=2)
 
 # 像seq2seq，用sos、eos偏置，一次性用tensor进行训练
@@ -228,7 +228,7 @@ model = Model(inputs=[encoder_inputs_placehoder,
 
 model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
-z = np.zeros(shape=(NUM_SAMPLES, LATENT_DIH_deCODER)) # 初始化 [s, c]
+z = np.zeros(shape=(NUM_SAMPLES, LATENT_DIH_DECODER)) # 初始化 [s, c]
 r = model.fit(
 	x=[encoder_inputs, decoder_inputs, z, z],
 	y=decoder_outputs_one_hot,
@@ -295,8 +295,8 @@ def get_translation(input_seq):
 	translation_input_word[0, 0] = word2index_outputs['<sos>']
 	# 如果预测到eos就结束
 	eos_index = word2index_outputs['<eos>']
-	s = np.zeros((1, LATENT_DIH_deCODER))
-	c = np.zeros((1, LATENT_DIH_deCODER))
+	s = np.zeros((1, LATENT_DIH_DECODER))
+	c = np.zeros((1, LATENT_DIH_DECODER))
 
 	# 产生翻译,
 	output_sentence = []
@@ -334,3 +334,4 @@ while True:
 	ans = input("Continue? [Y/n]")
 	if ans and ans.lower().startswith('n'):
 		break
+		

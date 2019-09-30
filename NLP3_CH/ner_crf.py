@@ -97,6 +97,9 @@ words_list = [line.strip().split('  ') for line in lines if line.strip()]  #  if
 # pos_seq:  ['un', 'v', 'v', 'v', 'v', 'n', 'n', 'u', 'a', 'n', 'n', 'w', 'w', 't', 't', 't', 't', 't', 't', 't', 'n', 'n', 'w', 'v', 'n', 'n', 'm', 'q', 'w', 'un']
 # tag_seqs: ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'B_T', 'I_T', 'I_T', 'I_T', 'I_T', 'I_T', 'I_T', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O']	# 不包含首尾'un'
 # word_seqs_['<BOS>', '迈', '向', '充', '满', '希', '望', '的', '新', '世', '纪', '—', '—', '一', '九', '九', '八', '年', '新', '年', '讲', '话', '(', '附', '图', '片', '1', '张', ')', '<EOS>']
+# CRF的X格式，下面只是一个sequence中的一部分
+# {'w-1': '<BOS>', 'w': '迈', 'w+1': '向', 'w-1:w': '<BOS>迈', 'w:w+1': '迈向', 'bias': 1.0}
+# {'w-1': '迈', 'w': '向', 'w+1': '充', 'w-1:w': '迈向', 'w:w+1': '向充', 'bias': 1.0}
 
 """初始化字序列、词性序列、标记序列 """
 words_seqs = [[word.split(u'/')[0] for word in words] for words in words_list]
