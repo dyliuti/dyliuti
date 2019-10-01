@@ -34,7 +34,7 @@
 
 **前提：**所有程序都是在pycharm以dyliuti文件夹为根目录运行的。直接跳到如CNN文件夹命令行运行ssd_image.py等，会存在文件不存在等问题，这需要注意下。
 
-**style_transfer.py:** 需要下载vgg16模型参数 vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5 （不包括顶层的两个全连接层）放在 C:\Users\用户名\.keras\models 文件夹中。
+**style_transfer.py:** 需要下载vgg16模型参数 vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5 （不包括顶层的两个全连接层）放在 C:\Users\用户名\\.keras\models 文件夹中。
 
 效果：一张图，与油画结合，生成具有油画风格的图。
 
@@ -46,7 +46,7 @@
 
 效果：检测出视频中的目标，以框标注出来，成果物也是视频。
 
-**resnet_*.py:** 需要下载模型参数 resnet50_weights_tf_dim_ordering_tf_kernels.h5 放在 C:\Users\用户名\.keras\models文件夹中。
+**resnet_*.py:** 需要下载模型参数 resnet50_weights_tf_dim_ordering_tf_kernels.h5 放在 C:\Users\用户名\\.keras\models文件夹中。
 
 效果：通过手动搭建resnet50，包括几个关键的模块，如conv_block, identity_block等，熟悉resnet50的各个环节。对原生的tensorflow神经网络再次封装，每个类保持相同的接口。参数复用， 通过对比keras中resnet50的输出结果与手动搭建的resnet50输出结果，查看效果。
 
