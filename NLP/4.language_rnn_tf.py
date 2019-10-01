@@ -111,7 +111,7 @@ while n_lines < 4:
 	word_index = np.random.choice(V, p=probs)
 	start_word_index.append(word_index)
 	if word_index > 1:
-		# it's a real word, not start/end token
+		# 真实词，不是 start/end token
 		word = index2word[word_index]
 		print(word, end=" ")
 	elif word_index == 1:

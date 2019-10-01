@@ -42,6 +42,10 @@ cache = cache / (1 - decay^t)  t表示迭代次数。该操作可校正初始每
 
 <br>
 
+5.开头的是用一些监督学习，如逻辑回归、随机树、XGBoost和无监督学习方法，如高斯混合模型进行预测。
+
+<br>
+
 **数据集下载：**
 
 [Minist文件夹用到的数据集下载](https://drive.google.com/file/d/1dQk9YIUDQZbubn4a3cay6hctYoBJjpiu/view?usp=sharing)

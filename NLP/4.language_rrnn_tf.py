@@ -26,7 +26,7 @@ bz = tf.Variable(tf.zeros(hidden_unit_size))
 tfX = tf.placeholder(tf.int32, shape=(None, ), name='input')
 tfY = tf.placeholder(tf.int32, shape=(None, ), name='output')
 
-# 简单的循环神经网络有意思的是输入不依赖与中间隐藏层，可利用矩阵提前一次性计算
+# 简单的循环神经网络有意思的是输入不依赖于中间隐藏层，可利用矩阵提前一次性计算
 # 这里与numpy相同We[tfX]， tfX是一维列表时结果为多行(多个词向量),几行即几个序列
 # 这种形式是one_hot.dot(We)的效率表示
 XWe = tf.nn.embedding_lookup(We, tfX)
