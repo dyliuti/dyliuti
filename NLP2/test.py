@@ -10,12 +10,12 @@ if len(K.tensorflow_backend._get_available_gpus()) > 0:
 
 T = 8
 D = 2
-M = 3
+H = 3
 
 X = np.random.randn(1, T, D)
 
 input_ = Input(shape=(T, D))
-rnn = Bidirectional(LSTM(M, return_state=True, return_sequences=True))
+rnn = Bidirectional(LSTM(H, return_state=True, return_sequences=True))
 # 是否返回 h、c 又因为有Bidirectional 有了h2、c2       return_sequences 对输出o有影响，就有没中间状态
 # rnn = Bidirectional(LSTM(M, return_state=True, return_sequences=False))
 x = rnn(input_)

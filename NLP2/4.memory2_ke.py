@@ -4,10 +4,16 @@ from keras.layers import Dense, Embedding, Input, Lambda, Reshape, add, dot, Act
 from keras.preprocessing.sequence import pad_sequences
 from keras.optimizers import Adam, RMSprop
 import keras.backend as K
+import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
 # loss: 0.1388 - acc: 0.9643 - val_loss: 0.3998 - val_acc: 0.9020
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
+K.set_session(session)
 
 def should_flatten(data_item):
 	return not isinstance(data_item, (str, bytes))
@@ -67,7 +73,7 @@ vocab_size = len(vocab)
 word2idx = {c: i for i, c in enumerate(vocab)}
 
 # 将句子长度对齐，对sotry中的每句索引化后进行pad，对query索引化后进行pad， 结果转换为索引
-# NxTxLen
+# N x max_story_len x T		N x max_query_Len
 inputs_train_, queries_train, answers_train = vectorize_data(
     train_data,
     word2idx,
@@ -81,7 +87,7 @@ inputs_test_, queries_test, answers_test = vectorize_data(
     max_query_len
 )
 
-# 将story长度对齐，从list转换为 3-D numpy arrays
+# 将story句子数一致，从list转换为 3-D numpy arrays
 inputs_train = stack_inputs(inputs_train_, max_story_len, max_story_sents_len)
 inputs_test = stack_inputs(inputs_test_, max_story_len, max_story_sents_len)
 
@@ -195,7 +201,7 @@ print("question:", " ".join(one_question))
 print("answer:", ans)
 pred_indexs = model.predict([input_, ques])	# 输出ans
 pred_index = np.argmax(pred_indexs)
-print("prediction:", vocab[ pred_index ])
+print("prediction:", vocab[pred_index])
 
 plt.plot(r.history['loss'], label='loss')
 plt.plot(r.history['val_loss'], label='val_loss')

@@ -4,8 +4,14 @@ from keras.layers import Dense, Embedding, Input, Lambda, Reshape, add, dot, Act
 from keras.preprocessing.sequence import pad_sequences
 from keras.optimizers import Adam, RMSprop
 import keras.backend as K
+import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
+K.set_session(session)
 
 def should_flatten(data_item):
 	return not isinstance(data_item, (str, bytes))
@@ -38,7 +44,7 @@ def vectorize_data(data, word2idx, max_story_sents_len, max_query_len):
 		np.array(answers)
 	)
 
-# 1000x10x8 将句子的个数对齐
+# 1000x10x8 补充句子数
 def stack_inputs(inputs, max_story_len, max_story_sents_len):
 	for i, story in enumerate(inputs):
 		# 没满足 max_story_len x max_story_sents_len 的，进行填充
@@ -64,7 +70,7 @@ vocab_size = len(vocab)
 word2idx = {c: i for i, c in enumerate(vocab)}
 
 # 将句子长度对齐，对sotry中的每句索引化后进行pad，对query索引化后进行pad， 结果转换为索引
-# NxTxLen
+# N x max_story_len x T		N x max_query_Len
 inputs_train_, queries_train, answers_train = vectorize_data(
     train_data,
     word2idx,
@@ -78,7 +84,7 @@ inputs_test_, queries_test, answers_test = vectorize_data(
     max_query_len
 )
 
-# 将story长度对齐，从list转换为 3-D numpy arrays
+# 将story句子数一致，从list转换为 3-D numpy arrays
 inputs_train = stack_inputs(inputs_train_, max_story_len, max_story_sents_len)
 inputs_test = stack_inputs(inputs_test_, max_story_len, max_story_sents_len)
 
@@ -109,8 +115,8 @@ embedded_question_ = Lambda(lambda x: K.sum(x, axis=1))(embedded_question__)
 
 
 # keras.core 为了可以和embedded_story进行点积
+# ? 15  ->  ? 1 15
 embedded_question = Reshape(target_shape=(1, embedding_dim))(embedded_question_)
-# ? 4  ->  ? 1 15
 print("inp_q.shape, emb_q.shape:", input_question.shape, embedded_question.shape)
 
 # embedded_story.shape        = (N, num sentences, embedding_dim)
