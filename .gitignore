@@ -7,6 +7,7 @@
 /Data/Markov/*
 /Data/NLP_CH/*
 /Data/CNN/*
+/NLP/3.poetry*
 param*.txt
 Minist/test.py
 /UI/*
