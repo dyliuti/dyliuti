@@ -12,14 +12,13 @@ num_hiddens, num_heads = 64, 4
 num_examples=300
 PAD, BOS, EOS = '<pad>', '<bos>', '<eos>'
 
-test_N = 3
-test_T = 5
+
 ###### Multi-Head Attention ######
 # 总的来说输入输出维度不变，都是 # (batch_size, num_items, units)。
 # 单个qkv看也是是 # (batch_size, num_items, units) -> (batch_size, num_items, units)
 # Positional Encoding的存在，增加输入词的序列前后属性
-# 输入：3个 NxTxD 即qkv，
-# 输出：1个 NxTxD 即加权重后的v
+# 输入：qkv: NxTxDe(De：Embedding的维度) NxTxDe ->Wqkv  NxTxD
+# 输出：1个 NxTxD 这里T不再是1了，V还是加权后平均，使T->1   因为此时Q的T不是1，是T   所以进行了T平方次加权 平均了T词
 class MultiHeadAttention(nn.Block):
     def __init__(self, units, num_heads, dropout, **kwargs):  # units = d_o
         super(MultiHeadAttention, self).__init__(**kwargs)
@@ -31,13 +30,14 @@ class MultiHeadAttention(nn.Block):
         self.W_v = nn.Dense(units, use_bias=False, flatten=False)
 
     # query, key, and value shape: (batch_size, num_items, dim)
-    # valid_length shape is either (batch_size, ) or (batch_size, num_items)
-    # qkv: NxTxD   D = units  令k=num_heads p=D/k
+    # (batch_size * num_heads, num_items, p), where units = p * num_heads.      512的embedding 8x64 num_heads=8 Df=64
+    # 设D=units D=K*Df
     def forward(self, query, key, value, valid_length):
-        # Project and transpose from (batch_size, num_items, units) to
-        # (batch_size * num_heads, num_items, p), where units = p * num_heads.
-        # W的作用 NxTxD -> NxTxD  这里的W是k个num_heads中的dense 参数合在一起了
-        # transponse NxTxD -> N*kxTxp
+        # N*KxTxDf
+        # query: NxTxH  key、value: NxTxH        Q中的T不再是1
+        # 经过W: NxTxD              NxTxD
+        # trans: N*KxTxDf           N*KxTxDf
+        # transponse NxTxD -> N*KxTxDf
         query, key, value = [transpose_qkv(X, self.num_heads) for X in (self.W_q(query), self.W_k(key), self.W_v(value))]
         # print(query.shape)
         if valid_length is not None:
@@ -46,58 +46,38 @@ class MultiHeadAttention(nn.Block):
                 valid_length = valid_length.tile(self.num_heads)
             else:
                 valid_length = valid_length.tile((self.num_heads, 1))
-        #N*kxTxT N*kxTxp -> N*kxTxp value的维度不变，只是根据每个要编码的词关注度不同，对应的value值变化了
+        # 输入：# Q: NxTxH     K、V：NxTxH
+        # 输出：# context： Nx1xH
+        # 输入：# Q: N*KxTxDf     K、V：N*KxTxDf
+        # 此时：# context: N*KxTxDf 维度同查询Q
         output = self.attention(query, key, value, valid_length)
-        # Transpose from (batch_size * num_heads, num_items, p) back to
-        # (batch_size, num_items, units)
-        # N*kxTxp -> NxTxD=units=k*p
+        # N*KxTxDf -> NxTxD=units=k*p
         return transpose_output(output, self.num_heads)
 
+# transponse NxTxD -> N*KxTxDf
 def transpose_qkv(X, num_heads):
-    # Shape after reshape: (batch_size, num_items, num_heads, p)
     # 0 means copying the shape element, -1 means inferring its value
-    # print("X:", X.shape)
-    # X: (3, 5, 32) -> (3, 5, 4, 8)
+    # NxTxD -> NxTxKxDf
     X = X.reshape((0, 0, num_heads, -1))
-    # print("X2:", X.shape)
-    # X: (3, 5, 4, 8) -> (3, 4, 5, 10) (batch_size, num_heads, num_items, p)
-    # Swap the num_items and the num_heads dimensions
+    # NxKxTxDf
     X = X.transpose((0, 2, 1, 3))
-    # print("X3:", X.shape)
-    # X: (3, 4, 5, 8) -> (3*4, 5, 8)  (batch_size * num_heads, num_items, p)
-    # Merge the first two dimensions. Use reverse=True to infer shape from right to left
-    # 从右向左推断形状，即从右向左开始看  前两个形状不变
-    # 若reverse=False (3, 4, 5, 8) -》 (3*8, 4, 5)
-    # print(X.reshape((-1, 0, 0), reverse=False).shape)
+    # N*KxTxDf
     return X.reshape((-1, 0, 0), reverse=True)
 
 def transpose_output(X, num_heads):
     # A reversed version of transpose_qkv
-    # X: N*kxTxp -> (N,k,T,p)
-    # X: (batch_size, num_heads, num_items, p)
+    # X: N*KxTxDf -> (N,K,T,Df)
     X = X.reshape((-1, num_heads, 0, 0), reverse=True)
-    # (batch_size, num_items, num_heads, p)
-    # (batch_size, num_items, units = num_heads * p)
-    # (N,T,k,p)
+    # (N,T,K,Df)
     X = X.transpose((0, 2, 1, 3))
     # (N,T,D=units=k*p)
     return X.reshape((0, 0, -1))
-
-# units = 100, num_heads = 10
-cell = MultiHeadAttention(32, 4, 0.5)
-cell.initialize()
-# TxNxH  对于query来说 T应该为1的
-X = nd.ones((test_N, test_T, units))
-valid_length = nd.array([2,3,3])    # valid_length 长度要与 X的第一维大小相同
-# N,T,units
-print(cell(X, X, X, valid_length).shape)
 
 
 ###### Position-wise Feed-Forward Networks  ######
 # 输入：NxTxD
 # 输出：NxTxD
 class PositionWiseFFN(nn.Block):
-    # 32 64
     def __init__(self, units, hidden_size, **kwargs):
         super(PositionWiseFFN, self).__init__(**kwargs)
         self.ffn_1 = nn.Dense(hidden_size, flatten=False, activation='relu')
@@ -105,11 +85,6 @@ class PositionWiseFFN(nn.Block):
 
     def forward(self, X):
         return self.ffn_2(self.ffn_1(X))
-
-ffn = PositionWiseFFN(units, num_hiddens)
-ffn.initialize()
-outp = ffn(nd.ones((test_N, test_T, units)))
-print(outp.shape, outp[0])
 
 
 ##### Add and Norm #####
@@ -134,12 +109,9 @@ class AddNorm(nn.Block):
     def forward(self, X, Y):
         return self.norm(self.dropout(Y) + X)
 
-add_norm = AddNorm(0.5)
-add_norm.initialize()
-print(add_norm(nd.ones((test_N, test_T, units)), nd.ones((test_N, test_T, units))).shape)
 
 ##### Positional Encoding #####
-# 输入：NxTxD
+# 输入：X: NxTxD
 # 输出：NxTxD  加上了位置编码  偶数对应sin，奇数索引对应cos
 class PositionalEncoding(nn.Block):
     def __init__(self, units, dropout, max_len=1000):
@@ -159,13 +131,6 @@ class PositionalEncoding(nn.Block):
         X = X + self.P[:, :X.shape[1], :].as_in_context(X.context)
         return self.dropout(X)
 
-pe = PositionalEncoding(units, 0)
-pe.initialize()
-# 1,100,20 维度不变，从 X = X+ 就能看出来了
-Y = pe(nd.zeros((1, test_T, units )))
-# 100x4
-data = Y[0, :, 4:8]
-d2l.plot(nd.arange(test_T), Y[0, :,4:8].T, figsize=(6, 2.5), legend=["dim %d"%p for p in [4,5,6,7]])
 
 ##### Encoder #####
 # 输入：NxTxD  和  (T,)   在atten中会对 X和valid_length都进行维度转换后再mask
@@ -182,12 +147,9 @@ class EncoderBlock(nn.Block):
         Y = self.add_1(X, self.attention(X, X, X, valid_length))    # add & norm  norm(X + Y)
         return self.add_2(Y, self.ffn(Y))
 
-encoder_blk = EncoderBlock(units, num_hiddens, num_heads, 0.5)
-encoder_blk.initialize()
-print(encoder_blk(nd.ones((test_N, test_T, units)), valid_length).shape)
 
 ##### Transformer Encoder #####
-# 输入：NxT   和  (T,)
+# 输入：NxT  个索引 和  (T,)
 # 输出：NxTxD  权重后的v再全连接层输出
 class TransformerEncoder(d2l.Encoder):
     # units=32 hidden_size=64 num_heads=4 num_layers=2
@@ -208,13 +170,9 @@ class TransformerEncoder(d2l.Encoder):
             X = blk(X, valid_length)
         return X
 
-encoder = TransformerEncoder(200, units, num_hiddens, num_heads, num_layers, 0.5)
-encoder.initialize()
-print(encoder(nd.ones((test_N, test_T)), valid_length).shape)
-
 
 ##### Decoder #####
-# 输入：NxTxD  和  encode state: NxTxD
+# 输入：NxTxD  和  encode output state: NxTxD
 # 输出：NxTxD  权重后的v再全连接层输出
 class DecoderBlock(nn.Block):
     # i means it's the i-th block in the decoder
@@ -253,14 +211,6 @@ class DecoderBlock(nn.Block):
         Z = self.add_2(Y, Y2)
         return self.add_3(Z, self.ffn(Z)), state
 
-# decoder初始化是与encoder一样的
-decoder_blk = DecoderBlock(units, num_hiddens, num_heads, 0.5, 0)
-decoder_blk.initialize()
-X = nd.ones((test_N, test_T, units))
-state = [encoder_blk(X, valid_length), valid_length, [None]*num_layers]
-de_res, de_state = decoder_blk(X, state)
-print(de_res.shape, de_state[0].shape) # de_state 为list 无shape属性
-print(decoder_blk(X, state)[0].shape)
 
 ##### Transformer Decoder #####
 # 输入：NxT  和  decode state: 1.encoder output: NxTxD 2.valid_len 3.num_layer个[None]
@@ -277,7 +227,6 @@ class TransformerDecoder(d2l.Decoder):
             self.blks.add(DecoderBlock(units, hidden_size, num_heads, dropout, i))
         self.dense = nn.Dense(vocab_size, flatten=False)
 
-    #
     # def init_state(self, enc_outputs, env_valid_lengh, *args):
     # 解码器初始化得到的参数作为下面forward函数中的state
     def init_state(self, enc_outputs, env_valid_lengh, *args):
@@ -289,7 +238,7 @@ class TransformerDecoder(d2l.Decoder):
             X, state = blk(X, state)
         return self.dense(X), state
 
-############################### Training ###############################
+#################### Training ####################
 import collections, io
 from mxnet.contrib import text
 from mxnet.gluon import data as gdata, nn
