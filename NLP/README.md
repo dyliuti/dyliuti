@@ -20,9 +20,5 @@
 
 4.开头的是用解析树表示句子，用递归神经网络做语义情感分析。
 
-<br>
 
-**数据集下载：**
-
-[Markov数据集下载，解压后将Markov文件夹放在Data文件夹下](https://drive.google.com/file/d/1G3rmYtY7Io754vVogcEdtskvTqYfsiuF/view?usp=sharing)
 

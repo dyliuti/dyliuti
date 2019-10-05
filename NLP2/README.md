@@ -20,9 +20,5 @@ NLP下游应用想多说点，在这里又不想多说点什么。搞清楚内�
 
 5.开头的是实现命名实体标注的多种方法。
 
-<br>
 
-**数据集下载：**
-
-[Markov数据集下载，解压后将Markov文件夹放在Data文件夹下](https://drive.google.com/file/d/1G3rmYtY7Io754vVogcEdtskvTqYfsiuF/view?usp=sharing)
 
