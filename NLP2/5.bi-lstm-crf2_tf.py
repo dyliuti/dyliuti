@@ -38,11 +38,11 @@ tag_schema = "iobes"    # 标签类型 iobes 或 iob     # 4x3 + 0 = 13
 pre_emb = True
 clip = 5         # "Gradient clip"
 p_dropout = 0.5
-batch_size = 20
+batch_size = 40
 lr = 0.001
 zeros = False       # 空格转为数字0
 lower = True        # 大写转小写
-max_epoch = 10
+max_epoch = 12
 
 script = "NLP2/conlleval"
 result_path= "Data/NLP2/NER"
@@ -89,7 +89,6 @@ print("train / dev / test的句子数分别为：%i / %i / %i ." % (len(train_da
 train_manager = BatchManager(train_data, batch_size)
 dev_manager = BatchManager(dev_data, 100)
 test_manager = BatchManager(test_data, 100)
-
 
 ##################################### 模型参数 #####################################
 num_words = len(word2index)
@@ -265,6 +264,7 @@ for i in range(max_epoch):
         batch_num = batch_num + 1
     # 评价dev
     results = []
+    ner_results = []
     trans_ = trans.eval(session=sess)
     for batch_ in dev_manager.iter_batch():
         sentences, chars_, segs_, tags_ = batch_
@@ -280,15 +280,17 @@ for i in range(max_epoch):
             batch_paths.append(path[1:])
 
         result = []
+        ner_result = []
         for i in range(len(sentences)):
             sentence = sentences[i][:lengths_dev[i]]
             gold = iobes_iob([index2tag[int(x)] for x in tags_[i][:lengths_dev[i]]])
             pred = iobes_iob([index2tag[int(x)] for x in batch_paths[i][:lengths_dev[i]]])
             for word, gold_, pred_ in zip(sentence, gold, pred):
-                result.append(" ".join([word, gold_, pred_]))
-            results.append(result)
+                result.append([word, gold_, pred_]) # [" ".join()]
+                ner_result.append([" ".join([word, gold_, pred_])])  # [" ".join()]
+            results.append([result])
+            ner_results.append(ner_result)
 
-    ner_results = results
     eval_lines = test_ner(ner_results, result_path)
     for line in eval_lines:
         print(line)
@@ -296,3 +298,8 @@ for i in range(max_epoch):
     if f1 > best_dev_f1:
         best_dev_f1 = f1
     dev_best = best_dev_f1
+
+
+import pandas as pd
+__test = np.array(results[-1]).squeeze(axis=0)
+pd.DataFrame(data=__test, columns=['字符', '真值', '预测'])

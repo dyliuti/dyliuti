@@ -116,7 +116,17 @@ model.compile(loss='categorical_crossentropy',
 			  optimizer='rmsprop',
 			  metrics=['acc'])
 print(model.metrics_names)
+
 model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=10, batch_size=128)
 model.save('lstm.h5')
 # 模型评估 返回loss value 与 metrics中的值
+print("损失", "准确率")
 print(model.evaluate(x_test, y_test))
+
+
+label_dict = {0:"被老公打", 1:"被老婆打", 2:"被儿子打", 3:"被女儿打"}
+preds = np.argmax(model.predict(x_test), axis=1)
+labels = np.argmax(y_test, axis=1)
+pair = [(label_dict[preds[i]], label_dict[labels[i]]) for i, _ in enumerate(labels)]
+import pandas as pd
+pd.DataFrame(pair, columns=["预测", "真值"])

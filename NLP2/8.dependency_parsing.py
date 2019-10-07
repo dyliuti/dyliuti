@@ -1,7 +1,7 @@
 from pyhanlp import *
 
-sentence = "徐先生还具体帮助他确定了把画雄鹰、松鼠和麻雀作为主攻目标。"
+sentence = "句法分析是自然语言处理中的关键技术之一，其基本任务是确定句子的句法结构或者句子中词汇之间的依存关系。"
 print(HanLP.parseDependency(sentence))
 
-f = open("result.txt", 'a+')
-print((HanLP.parseDependency(sentence)), file=f)
+# f = open("result.txt", 'a+')
+# print((HanLP.parseDependency(sentence)), file=f)

@@ -59,7 +59,7 @@ def test_ner(results, path):
         to_write = []
         for block in results:
             for line in block:
-                to_write.append(line + "\n")
+                to_write.append(" ".join(line) + "\n")
             to_write.append("\n")
 
         f.writelines(to_write)

@@ -72,4 +72,10 @@ trainer = gluon.Trainer(net.collect_params(), 'adam', {'learning_rate': lr})
 loss = gloss.SoftmaxCrossEntropyLoss()
 d2l.train(train_iter, test_iter, net, loss, trainer, ctx, num_epochs)
 
-d2l.predict_sentiment(net, vocab, ['this', 'movie', 'is', 'so', 'great'])
+
+print(['this', 'movie', 'is', 'so', 'great'])
+res = d2l.predict_sentiment(net, vocab, ['this', 'movie', 'is', 'so', 'great'])
+print('结果: ', res)
+print(['this', 'movie', 'is', 'so', 'bad'])
+res = d2l.predict_sentiment(net, vocab, ['this', 'movie', 'is', 'so', 'bad'])
+print('结果: ', res)

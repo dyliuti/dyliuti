@@ -12,7 +12,15 @@
 
 <br>
 
-**简化符号说明：**
+**视频链接：**
+
+[简历上的Bilibili视频链接，点我](https://www.bilibili.com/video/av70378611)
+
+[个人Bilibili主页，点我](https://space.bilibili.com/33760281)
+
+<br>
+
+**常用简化符号说明：**
 
 T:   序列长度。
 
@@ -36,19 +44,19 @@ Data：存放模型、模型数据、素材等的文件夹。
 
 3.Markov：练习Markov与隐Markov三类问题的解法。
 
-4.NLP：练习NLP的基础，如词向量的构建方法，测试词类比，语句可能性等。也用RNN测试语言模型，命名实体训练等。
+4.NLP：练习NLP的基础，如词向量的构建方法，测试词类比，语句可能性等。也用RNN测试语言模型等。
 
-5.NLP2：主要是练习自然语言处理的下游应用。如用seq2seq、attention、transformer等进行翻译、对话问答。使用memory问答推理等。还有RNN在命名实体的应用。
+5.NLP2：主要是练习自然语言处理的下游应用。如用seq2seq、attention、transformer等进行翻译、对话问答。用memory问答推理。命名实体、情感分析、文档分类、句法依存等应用。
 
 6.NLP3_CH：测试中文自然语言处理需要用到的一些库。如jieba、hanlp等等。也练习一些简单的中文自然语言处理。
 
 <br>
 
-总体运行环境：
+**运行环境：**
 
 Pycharm中以dyliuti为根目录。文件找不到现象，是因为不是以dyliuti为根目录，需要手动改下路径。
 
-PyCharm：2018community
+PyCharm：Windows 2018community
 
 tensorflow：1.14.0-gpu		CUDA 10.0.0		cuDNN 7.4.1
 
