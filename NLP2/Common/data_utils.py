@@ -70,20 +70,18 @@ def iob_iobes(tags):
     """
     new_tags = []
     for i, tag in enumerate(tags):
-        if tag == 'O':
+        if tag == 'O':                  # O保持不变
             new_tags.append(tag)
         elif tag.split('-')[0] == 'B':
-            if i + 1 != len(tags) and \
-               tags[i + 1].split('-')[0] == 'I':
-                new_tags.append(tag)
+            if i + 1 != len(tags) and tags[i + 1].split('-')[0] == 'I':
+                new_tags.append(tag)    # 后面还有字符，且下个字符是I，保持原样
             else:
-                new_tags.append(tag.replace('B-', 'S-'))
+                new_tags.append(tag.replace('B-', 'S-'))    # 不满足就是单个字符，将B替换为S
         elif tag.split('-')[0] == 'I':
-            if i + 1 < len(tags) and \
-                    tags[i + 1].split('-')[0] == 'I':
-                new_tags.append(tag)
+            if i + 1 < len(tags) and tags[i + 1].split('-')[0] == 'I':  # 小于有问题把，也应该是!=
+                new_tags.append(tag)    # 后面还有字符，且下个还是I，保持原样
             else:
-                new_tags.append(tag.replace('I-', 'E-'))
+                new_tags.append(tag.replace('I-', 'E-'))    # 否则改为结束标记
         else:
             raise Exception('Invalid IOB format!')
     return new_tags

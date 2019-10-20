@@ -19,3 +19,6 @@ main.py
 theme_blue_rc.py
 ./logs/*
 logs
+/BERT/NERdata
+/BERT/Output
+/BERT/chinese*

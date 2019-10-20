@@ -45,13 +45,13 @@ def update_tag_scheme(sentences, tag_scheme):
     """
     for i, s in enumerate(sentences):
         tags = [w[-1] for w in s]
-        # Check that tags are given in the IOB format
+        # 检测tag是 IOB format，并如果是iob1，转换为iob2
         if not iob2(tags):
             s_str = '\n'.join(' '.join(w) for w in s)
             raise Exception('Sentences should be given in IOB format! ' +
                             'Please check sentence %i:\n%s' % (i, s_str))
         if tag_scheme == 'iob':
-            # If format was IOB1, we convert to IOB2
+            # 如果是 IOB1, 转换为 IOB2
             for word, new_tag in zip(s, tags):
                 word[-1] = new_tag
         elif tag_scheme == 'iobes':
@@ -68,7 +68,7 @@ def char_mapping(sentences, lower):
     """
     chars = [[x[0].lower() if lower else x[0] for x in s] for s in sentences]
     dico = create_dico(chars)
-    dico["<PAD>"] = 10000001
+    dico["<PAD>"] = 10000001    # 很大的字符
     dico['<UNK>'] = 10000000
     char_to_id, id_to_char = create_mapping(dico)
     print("Found %i unique words (%i in total)" % (
