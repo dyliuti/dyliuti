@@ -739,5 +739,5 @@ def load_data():
     processer.get_labels()
     example = processer.get_train_examples(data_dir)
     print()
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+main()
