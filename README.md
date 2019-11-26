@@ -14,7 +14,7 @@
 
 **视频链接：**
 
-[简历上的Bilibili视频链接，点我](https://www.bilibili.com/video/av70378611)
+[简历上的Bilibili视频链接，点我](https://www.bilibili.com/video/av77050827/)
 
 [个人Bilibili主页，点我](https://space.bilibili.com/33760281)
 

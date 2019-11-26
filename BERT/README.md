@@ -6,7 +6,7 @@
 
 **BERT+Bi-LSTM+CRF**
 
-使用BERT进行命名实体检测。运行bert_lstm_ner.py即可。
+使用BERT进行命名实体检测。下载数据和模型后放到指定位置，运行bert_lstm_ner.py即可。
 
 
 
