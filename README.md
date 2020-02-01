@@ -1,6 +1,6 @@
 **“纸上得来终觉浅，绝知此事要躬行。”  —— 陆游**
 
-**"Practice，practice，practice and summary makes perfect" —— dyliuti**
+**"Practice，practice，practice and summary make perfect" —— dyliuti**
 
 ------
 
@@ -12,7 +12,7 @@
 
 **感谢：**
 
-这一年感谢真正富有学识，又乐于分享的大神们。你们总是在想能给予别人什么，怎么成就别人，让人敬佩。也感谢可能素不相识，却给过我鼓励的人们，谢谢了！工作之余有空时也会参加些竞赛，我的微信yanminweilalala，若想交个朋友或进一步交流可以加我微信。
+这一年感谢真正富有学识，又乐于分享的大神们。你们总是在想能给予别人什么，怎么成就别人，让人敬佩。也感谢本素不相识，却给过我鼓励的人们，谢谢了！
 
 <br>
 
